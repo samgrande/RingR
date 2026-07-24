@@ -1,0 +1,6 @@
+<resources>
+    <style name="Theme.RingR" parent="android:Theme.Material.Light.NoActionBar">
+        <item name="android:statusBarColor">#FFE3D5</item>
+        <item name="android:windowBackground">#FFE3D5</item>
+    </style>
+</resources>
