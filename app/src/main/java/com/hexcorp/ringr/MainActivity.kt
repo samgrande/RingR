@@ -23,10 +23,13 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -51,6 +54,7 @@ import com.hexcorp.ringr.ui.screens.TrimScreen
 import com.hexcorp.ringr.ui.theme.RingRTheme
 import com.hexcorp.ringr.viewmodel.RingRViewModel
 import com.hexcorp.ringr.viewmodel.Step
+import kotlinx.coroutines.delay
 
 class MainActivity : ComponentActivity() {
 
@@ -173,25 +177,48 @@ fun RingRApp(viewModel: RingRViewModel) {
                 ),
             )
 
+            val messages = listOf(
+                "Cooking your ringtone...",
+                "Fetching dope tunes...",
+                "Vibing it up...",
+                "Definitely working...",
+                "Good choice of tune...",
+            )
+            var messageIndex by remember { mutableIntStateOf(0) }
+            LaunchedEffect(Unit) {
+                while (true) {
+                    delay(4000)
+                    messageIndex = (messageIndex + 1) % messages.size
+                }
+            }
+
             Box(
                 modifier = Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.3f)),
                 contentAlignment = Alignment.Center,
             ) {
-                Box(
-                    modifier = Modifier
-                        .size(240.dp)
-                        .background(
-                            MaterialTheme.colorScheme.surfaceContainerHigh,
-                            shape = CircleShape,
-                        ),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    LottieAnimation(
-                        composition = composition,
-                        progress = { progress },
-                        modifier = Modifier.size(192.dp),
-                        dynamicProperties = dynamicProperties,
-                        contentScale = ContentScale.Fit,
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Box(
+                        modifier = Modifier
+                            .size(240.dp)
+                            .background(
+                                MaterialTheme.colorScheme.surfaceContainerHigh,
+                                shape = CircleShape,
+                            ),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        LottieAnimation(
+                            composition = composition,
+                            progress = { progress },
+                            modifier = Modifier.size(192.dp),
+                            dynamicProperties = dynamicProperties,
+                            contentScale = ContentScale.Fit,
+                        )
+                    }
+                    Spacer(Modifier.height(40.dp))
+                    Text(
+                        text = messages[messageIndex],
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
             }

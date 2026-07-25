@@ -17,11 +17,12 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
-import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.foundation.gestures.detectTapGestures
 import kotlinx.coroutines.delay
@@ -59,8 +60,17 @@ fun EditableTitle(value: String, onChange: (String) -> Unit) {
         LaunchedEffect(Unit) { scope.launch { focusRequester.requestFocus() } }
     } else {
         var containerWidth by remember { mutableIntStateOf(0) }
-        var textWidth by remember { mutableIntStateOf(0) }
         var offsetX by remember { mutableFloatStateOf(0f) }
+        val textMeasurer = rememberTextMeasurer()
+        val textStyle = MaterialTheme.typography.titleMedium
+        val textWidth = remember(value) {
+            textMeasurer.measure(
+                text = value,
+                style = textStyle,
+                constraints = Constraints(maxWidth = Int.MAX_VALUE),
+                maxLines = 1,
+            ).size.width
+        }
 
         Box(
             modifier = Modifier.fillMaxWidth().clipToBounds().onSizeChanged { containerWidth = it.width },
@@ -69,12 +79,12 @@ fun EditableTitle(value: String, onChange: (String) -> Unit) {
                 text = value,
                 style = MaterialTheme.typography.titleMedium,
                 color = MaterialTheme.colorScheme.onSurface,
-                textAlign = TextAlign.Start,
+                textAlign = if (textWidth <= containerWidth) TextAlign.Center else TextAlign.Start,
                 maxLines = 1,
                 overflow = TextOverflow.Visible,
                 softWrap = false,
-                onTextLayout = { textWidth = it.size.width },
                 modifier = Modifier
+                    .then(if (textWidth <= containerWidth) Modifier.fillMaxWidth() else Modifier)
                     .then(if (textWidth > containerWidth) Modifier.offset { IntOffset(offsetX.toInt(), 0) } else Modifier)
                     .pointerInput(Unit) {
                         detectTapGestures(onTap = { editing = true })

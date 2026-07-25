@@ -38,8 +38,10 @@ import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -504,8 +506,17 @@ private fun MinimalWaveform(
 @Composable
 private fun MarqueeText(text: String, modifier: Modifier = Modifier) {
     var containerWidth by remember { mutableIntStateOf(0) }
-    var textWidth by remember { mutableIntStateOf(0) }
     var offsetX by remember { mutableFloatStateOf(0f) }
+    val textMeasurer = rememberTextMeasurer()
+    val textStyle = MaterialTheme.typography.titleMedium
+    val textWidth = remember(text) {
+        textMeasurer.measure(
+            text = text,
+            style = textStyle,
+            constraints = Constraints(maxWidth = Int.MAX_VALUE),
+            maxLines = 1,
+        ).size.width
+    }
 
     Box(
         modifier = modifier.clipToBounds().onSizeChanged { containerWidth = it.width },
@@ -518,9 +529,8 @@ private fun MarqueeText(text: String, modifier: Modifier = Modifier) {
             maxLines = 1,
             overflow = TextOverflow.Visible,
             softWrap = false,
-            onTextLayout = { textWidth = it.size.width },
             modifier = Modifier
-                .fillMaxWidth()
+                .then(if (textWidth <= containerWidth) Modifier.fillMaxWidth() else Modifier)
                 .then(if (textWidth > containerWidth) Modifier.offset { IntOffset(offsetX.toInt(), 0) } else Modifier),
         )
     }
