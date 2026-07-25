@@ -107,7 +107,7 @@ fun LandingScreen(
                     .fillMaxWidth()
                     .height(56.dp),
             ) {
-                Text(if (loading) "LOADING\u2026" else "CREATE", fontWeight = FontWeight.Bold)
+                Text("CREATE", fontWeight = FontWeight.Bold)
             }
 
             error?.let {

@@ -67,6 +67,9 @@ dependencies {
     // Image loading for thumbnails
     implementation(libs.coil.compose)
 
+    // Lottie for loading animation
+    implementation(libs.lottie.compose)
+
     // yt-dlp + ffmpeg bundled for Android (Maven Central — io.github.junkfood02.youtubedl-android 0.18.1)
     implementation(libs.youtubedl.android)
     implementation(libs.youtubedl.android.ffmpeg)

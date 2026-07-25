@@ -17,6 +17,7 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextAlign
@@ -57,11 +58,13 @@ fun EditableTitle(value: String, onChange: (String) -> Unit) {
         )
         LaunchedEffect(Unit) { scope.launch { focusRequester.requestFocus() } }
     } else {
-        Box(
-            modifier = Modifier.fillMaxWidth().clipToBounds(),
-        ) {
-            var textLayout by remember { mutableStateOf<androidx.compose.ui.text.TextLayoutResult?>(null) }
+        var containerWidth by remember { mutableIntStateOf(0) }
+        var textWidth by remember { mutableIntStateOf(0) }
+        var offsetX by remember { mutableFloatStateOf(0f) }
 
+        Box(
+            modifier = Modifier.fillMaxWidth().clipToBounds().onSizeChanged { containerWidth = it.width },
+        ) {
             Text(
                 text = value,
                 style = MaterialTheme.typography.titleMedium,
@@ -70,12 +73,34 @@ fun EditableTitle(value: String, onChange: (String) -> Unit) {
                 maxLines = 1,
                 overflow = TextOverflow.Visible,
                 softWrap = false,
-                onTextLayout = { textLayout = it },
+                onTextLayout = { textWidth = it.size.width },
                 modifier = Modifier
+                    .then(if (textWidth > containerWidth) Modifier.offset { IntOffset(offsetX.toInt(), 0) } else Modifier)
                     .pointerInput(Unit) {
                         detectTapGestures(onTap = { editing = true })
                     },
             )
+        }
+
+        LaunchedEffect(value, textWidth, containerWidth) {
+            offsetX = 0f
+            if (textWidth > containerWidth && containerWidth > 0) {
+                val distance = (textWidth - containerWidth).toFloat()
+                val stepDelay = 20L
+                val steps = 60
+                while (true) {
+                    delay(1500)
+                    for (i in 1..steps) {
+                        offsetX = -(distance * i / steps)
+                        delay(stepDelay)
+                    }
+                    delay(2000)
+                    for (i in steps downTo 1) {
+                        offsetX = -(distance * i / steps)
+                        delay(stepDelay)
+                    }
+                }
+            }
         }
     }
 }

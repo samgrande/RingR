@@ -59,23 +59,16 @@ fun FinalizeScreen(
                     containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
                 ),
                 ) {
-                Column(
-                    modifier = Modifier.padding(24.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                ) {
-                    Spacer(Modifier.height(16.dp))
+                    Column(
+                        modifier = Modifier.padding(24.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                    ) {
+                        Spacer(Modifier.height(8.dp))
 
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.Center,
                     ) {
-                        Text(
-                            "Ringtone Ready",
-                            style = MaterialTheme.typography.titleMedium,
-                            color = MaterialTheme.colorScheme.onSurface,
-                            fontWeight = FontWeight.Bold,
-                        )
-                        Spacer(Modifier.width(10.dp))
                         Box(
                             modifier = Modifier
                                 .size(22.dp)
@@ -84,15 +77,22 @@ fun FinalizeScreen(
                             contentAlignment = Alignment.Center,
                         ) {
                             Icon(
-                                imageVector = Icons.Filled.CheckCircle,
+                                imageVector = Icons.Filled.MusicNote,
                                 contentDescription = null,
-                                modifier = Modifier.size(16.dp),
+                                modifier = Modifier.size(14.dp),
                                 tint = MaterialTheme.colorScheme.onPrimary,
                             )
                         }
+                        Spacer(Modifier.width(10.dp))
+                        Text(
+                            "Ringtone Ready",
+                            style = MaterialTheme.typography.titleMedium,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            fontWeight = FontWeight.Bold,
+                        )
                     }
 
-                    Spacer(Modifier.height(16.dp))
+                    Spacer(Modifier.height(24.dp))
 
                     Card(
                         shape = RoundedCornerShape(24.dp),
@@ -121,6 +121,7 @@ fun FinalizeScreen(
                             }
                             Spacer(Modifier.height(12.dp))
                             EditableTitle(value = job.name, onChange = onRename)
+                            Spacer(Modifier.height(4.dp))
                             Text(job.uploader, color = MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.Medium)
                         }
                     }
@@ -215,7 +216,7 @@ fun FinalizeScreen(
                 }
             }
 
-            Spacer(Modifier.height(16.dp))
+            Spacer(Modifier.height(28.dp))
 
             FilledTonalButton(
                 onClick = onMakeAnother,

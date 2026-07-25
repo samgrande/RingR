@@ -2,21 +2,24 @@ package com.hexcorp.ringr.ui.screens
 
 import android.media.MediaPlayer
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.animateIntOffsetAsState
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
-import androidx.compose.animation.animateColorAsState
-import androidx.compose.animation.core.spring
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.VolumeOff
 import androidx.compose.material.icons.automirrored.filled.VolumeUp
+import androidx.compose.material.icons.filled.ContentCut
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -143,45 +146,101 @@ fun TrimScreen(
             ),
         ) {
             Column(
-                modifier = Modifier.padding(horizontal = 24.dp, vertical = 16.dp),
+                modifier = Modifier.padding(24.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
-                Text("Trim Your Ringtone", style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.onSurface)
-                Spacer(Modifier.height(20.dp))
+                Spacer(Modifier.height(8.dp))
 
                 Row(
-                    modifier = Modifier
-                        .background(MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(24.dp))
-                        .padding(3.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.Center,
                 ) {
-                    PRESETS.forEach { p ->
-                        val active = abs(cropDuration - p) < 1f
-                        val bgColor by animateColorAsState(
-                            if (active) MaterialTheme.colorScheme.tertiaryContainer
-                            else Color.Transparent,
+                    Box(
+                        modifier = Modifier
+                            .size(22.dp)
+                            .clip(CircleShape)
+                            .background(MaterialTheme.colorScheme.primary),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Icon(
+                            imageVector = Icons.Filled.ContentCut,
+                            contentDescription = null,
+                            modifier = Modifier.size(14.dp),
+                            tint = MaterialTheme.colorScheme.onPrimary,
                         )
-                        val textColor by animateColorAsState(
-                            if (active) MaterialTheme.colorScheme.onTertiaryContainer
-                            else MaterialTheme.colorScheme.onSurface,
-                        )
-                        Box(
-                            modifier = Modifier
-                                .clip(RoundedCornerShape(20.dp))
-                                .background(bgColor)
-                                .clickable {
-                                    val newDur = minOf(p.toFloat(), totalDuration)
-                                    cropDuration = newDur
-                                    if (cropStart + newDur > totalDuration) {
-                                        cropStart = totalDuration - newDur
-                                    }
-                                }
-                                .padding(horizontal = 20.dp, vertical = 10.dp),
-                        ) {
-                            Text(
-                                "${p}s",
-                                fontWeight = FontWeight.Bold,
-                                color = textColor,
-                            )
+                    }
+                    Spacer(Modifier.width(10.dp))
+                    Text("Trim Your Ringtone", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold)
+                }
+                Spacer(Modifier.height(24.dp))
+
+                val selectedIndex = PRESETS.indexOfFirst { abs(cropDuration - it) < 1f }.coerceAtLeast(0)
+                var trackWidth by remember { mutableIntStateOf(0) }
+                val density = LocalDensity.current
+
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth(0.7f)
+                        .height(44.dp)
+                        .clip(RoundedCornerShape(22.dp))
+                        .background(MaterialTheme.colorScheme.surfaceVariant)
+                        .onSizeChanged { trackWidth = it.width }
+                        .pointerInput(trackWidth) {
+                            detectHorizontalDragGestures { change, _ ->
+                                change.consume()
+                                if (trackWidth <= 0) return@detectHorizontalDragGestures
+                                val pos = change.position.x.coerceIn(0f, trackWidth.toFloat())
+                                val idx = (pos / trackWidth * PRESETS.size).toInt().coerceIn(0, PRESETS.size - 1)
+                                cropDuration = minOf(PRESETS[idx].toFloat(), totalDuration)
+                            }
+                        },
+                ) {
+                    val thumbWidthPx = if (trackWidth > 0) trackWidth / PRESETS.size else 0
+                    val targetX = selectedIndex * thumbWidthPx
+                    val animatedOffset by animateIntOffsetAsState(
+                        targetValue = IntOffset(x = targetX, y = 0),
+                        animationSpec = spring(
+                            stiffness = 800f,
+                            dampingRatio = 0.35f,
+                        ),
+                    )
+
+                    Box(
+                        modifier = Modifier
+                            .offset { IntOffset(animatedOffset.x, 0) }
+                            .width(with(density) { thumbWidthPx.toDp() })
+                            .fillMaxHeight()
+                            .clip(RoundedCornerShape(22.dp))
+                            .background(MaterialTheme.colorScheme.primaryContainer),
+                    )
+
+                    Row(modifier = Modifier.fillMaxSize()) {
+                        PRESETS.forEachIndexed { index, p ->
+                            Box(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .fillMaxHeight()
+                                    .clickable(
+                                        interactionSource = remember { MutableInteractionSource() },
+                                        indication = null,
+                                    ) {
+                                        val newDur = minOf(p.toFloat(), totalDuration)
+                                        cropDuration = newDur
+                                        if (cropStart + newDur > totalDuration) {
+                                            cropStart = totalDuration - newDur
+                                        }
+                                    },
+                                contentAlignment = Alignment.Center,
+                            ) {
+                                Text(
+                                    "${p}s",
+                                    fontWeight = FontWeight.Bold,
+                                    color = if (index == selectedIndex)
+                                        MaterialTheme.colorScheme.onPrimaryContainer
+                                    else
+                                        MaterialTheme.colorScheme.onSurface,
+                                )
+                            }
                         }
                     }
                 }
@@ -212,6 +271,7 @@ fun TrimScreen(
 
                 Spacer(Modifier.height(12.dp))
                 MarqueeText(text = job.name, modifier = Modifier.fillMaxWidth())
+                Spacer(Modifier.height(4.dp))
                 Text(job.uploader, color = MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.Medium, fontSize = 13.sp)
 
                 Spacer(Modifier.height(24.dp))
@@ -286,7 +346,7 @@ fun TrimScreen(
                         enabled = !loading,
                         colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary, contentColor = MaterialTheme.colorScheme.onPrimary),
                         shape = RoundedCornerShape(28.dp),
-                    ) { Text(if (loading) "PROCESSING\u2026" else "PROCEED", fontWeight = FontWeight.Bold) }
+                    ) { Text("PROCEED", fontWeight = FontWeight.Bold) }
                 }
             }
         }
@@ -468,14 +528,21 @@ private fun MarqueeText(text: String, modifier: Modifier = Modifier) {
     LaunchedEffect(text, textWidth, containerWidth) {
         offsetX = 0f
         if (textWidth > containerWidth && containerWidth > 0) {
-            delay(1200)
             val distance = (textWidth - containerWidth).toFloat()
-            val steps = 80
-            for (i in 1..steps) {
-                offsetX = -(distance * i / steps)
-                delay(25)
+            val stepDelay = 20L
+            val steps = 60
+            while (true) {
+                delay(1500)
+                for (i in 1..steps) {
+                    offsetX = -(distance * i / steps)
+                    delay(stepDelay)
+                }
+                delay(2000)
+                for (i in steps downTo 1) {
+                    offsetX = -(distance * i / steps)
+                    delay(stepDelay)
+                }
             }
-            delay(2000)
         }
     }
 }
