@@ -13,6 +13,10 @@ android {
         targetSdk = 35
         versionCode = 1
         versionName = "1.0"
+
+        ndk {
+            abiFilters += listOf("x86", "x86_64", "armeabi-v7a", "arm64-v8a")
+        }
     }
 
     signingConfigs {
@@ -25,18 +29,10 @@ android {
     }
 
     buildTypes {
-        debug {
-            ndk {
-                abiFilters += listOf("x86", "x86_64", "armeabi-v7a", "arm64-v8a")
-            }
-        }
         release {
             signingConfig = signingConfigs.getByName("release")
-            isMinifyEnabled = true
+            isMinifyEnabled = false
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
-            ndk {
-                abiFilters += listOf("armeabi-v7a", "arm64-v8a")
-            }
         }
     }
 
