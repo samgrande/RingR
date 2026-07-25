@@ -1,5 +1,9 @@
 package com.hexcorp.ringr.ui.screens
 
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -7,15 +11,19 @@ import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.foundation.gestures.detectTapGestures
-import com.hexcorp.ringr.ui.theme.RingDark
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 @Composable
@@ -37,8 +45,8 @@ fun EditableTitle(value: String, onChange: (String) -> Unit) {
             colors = TextFieldDefaults.colors(
                 focusedContainerColor = Color.Transparent,
                 unfocusedContainerColor = Color.Transparent,
-                focusedIndicatorColor = RingDark,
-                unfocusedIndicatorColor = RingDark,
+                focusedIndicatorColor = MaterialTheme.colorScheme.onSurface,
+                unfocusedIndicatorColor = MaterialTheme.colorScheme.onSurface,
             ),
             keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(imeAction = ImeAction.Done),
             keyboardActions = KeyboardActions(onDone = {
@@ -49,14 +57,25 @@ fun EditableTitle(value: String, onChange: (String) -> Unit) {
         )
         LaunchedEffect(Unit) { scope.launch { focusRequester.requestFocus() } }
     } else {
-        Text(
-            text = value,
-            style = MaterialTheme.typography.titleMedium,
-            color = RingDark,
-            textAlign = TextAlign.Center,
-            modifier = Modifier.pointerInput(Unit) {
-                detectTapGestures(onTap = { editing = true })
-            },
-        )
+        Box(
+            modifier = Modifier.fillMaxWidth().clipToBounds(),
+        ) {
+            var textLayout by remember { mutableStateOf<androidx.compose.ui.text.TextLayoutResult?>(null) }
+
+            Text(
+                text = value,
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.onSurface,
+                textAlign = TextAlign.Start,
+                maxLines = 1,
+                overflow = TextOverflow.Visible,
+                softWrap = false,
+                onTextLayout = { textLayout = it },
+                modifier = Modifier
+                    .pointerInput(Unit) {
+                        detectTapGestures(onTap = { editing = true })
+                    },
+            )
+        }
     }
 }

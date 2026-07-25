@@ -26,6 +26,7 @@ data class RingRJob(
     val durationSeconds: Int?,
     val sourceFile: File? = null,
     val ringtoneFile: File? = null,
+    val ringtoneDurationSeconds: Float? = null,
     val waveformData: List<Float>? = null,
 )
 
@@ -102,11 +103,12 @@ class RingRViewModel(application: Application) : AndroidViewModel(application) {
                     durationSec = endSec - startSec,
                     sourceFile = job.sourceFile,
                 )
+                val ringtoneDuration = (endSec - startSec).toFloat()
                 _uiState.update {
                     it.copy(
                         step = Step.FINALIZE,
                         loading = false,
-                        job = job.copy(ringtoneFile = ringtoneFile),
+                        job = job.copy(ringtoneFile = ringtoneFile, ringtoneDurationSeconds = ringtoneDuration),
                     )
                 }
             } catch (e: RingRExtractionException) {

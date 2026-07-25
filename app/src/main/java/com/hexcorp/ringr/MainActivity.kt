@@ -1,27 +1,34 @@
 package com.hexcorp.ringr
 
+import android.app.Activity
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.viewModels
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.background
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.BlendMode
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
+import androidx.core.view.WindowInsetsControllerCompat
+import com.hexcorp.ringr.ui.components.BackgroundShapes
 import com.hexcorp.ringr.ui.screens.FinalizeScreen
 import com.hexcorp.ringr.ui.screens.LandingScreen
 import com.hexcorp.ringr.ui.screens.TrimScreen
-import com.hexcorp.ringr.ui.theme.RingBg
-import com.hexcorp.ringr.ui.theme.RingDark
 import com.hexcorp.ringr.ui.theme.RingRTheme
 import com.hexcorp.ringr.viewmodel.RingRViewModel
 import com.hexcorp.ringr.viewmodel.Step
@@ -34,7 +41,7 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         setContent {
             RingRTheme {
-                Surface(color = RingBg) {
+                Surface(color = MaterialTheme.colorScheme.background) {
                     RingRApp(viewModel)
                 }
             }
@@ -46,51 +53,67 @@ class MainActivity : ComponentActivity() {
 fun RingRApp(viewModel: RingRViewModel) {
     val uiState by viewModel.uiState.collectAsState()
 
-    Column(modifier = Modifier.fillMaxSize()) {
-        if (uiState.step != Step.LANDING) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = 32.dp, bottom = 12.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
-            ) {
-                Image(
-                    painter = painterResource(id = R.drawable.ic_ringr_logo),
-                    contentDescription = "Ring-R",
-                    modifier = Modifier
-                        .fillMaxWidth(0.4f)
-                        .height(30.dp),
-                )
-                Text("Convert YouTube links into ringtone", style = MaterialTheme.typography.bodyMedium, color = RingDark)
-            }
+    val backgroundColor = MaterialTheme.colorScheme.background
+    val isDark = isSystemInDarkTheme()
+    val window = (LocalContext.current as? Activity)?.window
+
+    SideEffect {
+        window?.let {
+            it.statusBarColor = backgroundColor.toArgb()
+            WindowInsetsControllerCompat(it, it.decorView).isAppearanceLightStatusBars = !isDark
         }
+    }
 
-        Box(modifier = Modifier.weight(1f).padding(horizontal = 16.dp, vertical = 8.dp)) {
-            when (uiState.step) {
-                Step.LANDING -> LandingScreen(
-                    loading = uiState.loading,
-                    error = uiState.error,
-                    onSubmit = viewModel::submitLink,
-                )
+    Box(modifier = Modifier.fillMaxSize()) {
+        BackgroundShapes()
 
-                Step.TRIM -> uiState.job?.let { job ->
-                    TrimScreen(
-                        job = job,
+        Column(modifier = Modifier.fillMaxSize()) {
+            if (uiState.step != Step.LANDING) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 64.dp, bottom = 12.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                ) {
+                    Image(
+                        painter = painterResource(id = R.drawable.ic_ringr_logo),
+                        contentDescription = "Ring-R",
+                        modifier = Modifier
+                            .fillMaxWidth(0.4f)
+                            .height(30.dp),
+                        colorFilter = ColorFilter.tint(MaterialTheme.colorScheme.onBackground),
+                    )
+                    Text("Convert YouTube links into ringtone", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onBackground)
+                }
+            }
+
+            Box(modifier = Modifier.weight(1f).padding(horizontal = 16.dp, vertical = 8.dp)) {
+                when (uiState.step) {
+                    Step.LANDING -> LandingScreen(
                         loading = uiState.loading,
                         error = uiState.error,
-                        onRename = viewModel::rename,
-                        onBack = viewModel::backToLanding,
-                        onProceed = viewModel::proceedToFinalize,
+                        onSubmit = viewModel::submitLink,
                     )
-                }
 
-                Step.FINALIZE -> uiState.job?.let { job ->
-                    FinalizeScreen(
-                        job = job,
-                        onRename = viewModel::rename,
-                        onBack = viewModel::backToTrim,
-                        onMakeAnother = viewModel::makeAnother,
-                    )
+                    Step.TRIM -> uiState.job?.let { job ->
+                        TrimScreen(
+                            job = job,
+                            loading = uiState.loading,
+                            error = uiState.error,
+                            onRename = viewModel::rename,
+                            onBack = viewModel::backToLanding,
+                            onProceed = viewModel::proceedToFinalize,
+                        )
+                    }
+
+                    Step.FINALIZE -> uiState.job?.let { job ->
+                        FinalizeScreen(
+                            job = job,
+                            onRename = viewModel::rename,
+                            onBack = viewModel::backToTrim,
+                            onMakeAnother = viewModel::makeAnother,
+                        )
+                    }
                 }
             }
         }

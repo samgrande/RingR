@@ -4,6 +4,7 @@ import android.content.ClipboardManager
 import android.content.Context
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
@@ -13,6 +14,9 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.BlendMode
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
@@ -33,7 +37,6 @@ fun LandingScreen(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(RingBg)
             .padding(horizontal = 24.dp),
     ) {
         Column(
@@ -46,12 +49,13 @@ fun LandingScreen(
                 painter = painterResource(id = com.hexcorp.ringr.R.drawable.ic_ringr_logo),
                 contentDescription = "Ring-R",
                 modifier = Modifier.size(width = 400.dp, height = 78.dp),
+                colorFilter = ColorFilter.tint(MaterialTheme.colorScheme.onBackground),
             )
             Spacer(Modifier.height(28.dp))
             Text(
                 text = "Convert YouTube links into ringtone",
                 fontSize = 13.sp,
-                color = RingDark,
+                color = MaterialTheme.colorScheme.onBackground,
             )
 
             Spacer(Modifier.height(48.dp))
@@ -59,17 +63,17 @@ fun LandingScreen(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(RingPill, RoundedCornerShape(50))
+                    .background(MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(50))
                     .padding(start = 20.dp, end = 16.dp, top = 8.dp, bottom = 8.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Icon(Icons.Default.Search, contentDescription = null, tint = RingMuted)
+                Icon(Icons.Default.Search, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
                 Spacer(Modifier.width(12.dp))
                 TextField(
                     value = url,
                     onValueChange = { url = it },
                     modifier = Modifier.weight(1f),
-                    placeholder = { Text("Paste your link", color = RingMuted) },
+                    placeholder = { Text("Paste your link", color = MaterialTheme.colorScheme.onSurfaceVariant) },
                     singleLine = true,
                     colors = TextFieldDefaults.colors(
                         focusedContainerColor = androidx.compose.ui.graphics.Color.Transparent,
@@ -85,7 +89,7 @@ fun LandingScreen(
                         val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
                         clipboard.primaryClip?.getItemAt(0)?.text?.let { url = it.toString() }
                     },
-                    colors = ButtonDefaults.textButtonColors(containerColor = RingPanelInner, contentColor = RingDark),
+                    colors = ButtonDefaults.textButtonColors(containerColor = MaterialTheme.colorScheme.surface, contentColor = MaterialTheme.colorScheme.onSurface),
                     shape = RoundedCornerShape(50),
                 ) {
                     Text("PASTE", fontWeight = FontWeight.Bold, fontSize = 12.sp)
@@ -97,7 +101,7 @@ fun LandingScreen(
             Button(
                 onClick = { onSubmit(url.trim()) },
                 enabled = !loading && url.isNotBlank(),
-                colors = ButtonDefaults.buttonColors(containerColor = RingDark, contentColor = RingWhite),
+                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary, contentColor = MaterialTheme.colorScheme.onPrimary),
                 shape = RoundedCornerShape(50),
                 modifier = Modifier
                     .fillMaxWidth()
@@ -108,7 +112,7 @@ fun LandingScreen(
 
             error?.let {
                 Spacer(Modifier.height(16.dp))
-                Text(it, color = RingAccent, fontWeight = FontWeight.Bold)
+                Text(it, color = MaterialTheme.colorScheme.error, fontWeight = FontWeight.Bold)
             }
         }
 
@@ -117,7 +121,7 @@ fun LandingScreen(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
                 .padding(bottom = 24.dp),
-            color = RingMuted,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
             fontSize = 12.sp,
         )
     }

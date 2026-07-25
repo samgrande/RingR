@@ -12,7 +12,12 @@ import android.provider.Settings
 import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.MusicNote
+import androidx.compose.material.icons.outlined.Schedule
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -21,10 +26,9 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
-import com.hexcorp.ringr.ui.theme.*
 import com.hexcorp.ringr.viewmodel.RingRJob
 import java.io.File
 import java.io.FileOutputStream
@@ -44,126 +48,187 @@ fun FinalizeScreen(
     ) {
         Column(
             modifier = Modifier
-                .wrapContentHeight()
-                .background(RingPanel, RoundedCornerShape(40.dp))
-                .padding(20.dp),
+                .wrapContentSize()
+                .padding(horizontal = 16.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            Text(
-                "Finalize",
-                style = MaterialTheme.typography.titleMedium,
-                color = RingDark,
-                modifier = Modifier.fillMaxWidth(),
-                textAlign = TextAlign.Center,
-            )
-        Spacer(Modifier.height(20.dp))
+            Card(
+                modifier = Modifier.wrapContentWidth().wrapContentHeight(),
+                shape = RoundedCornerShape(32.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                ),
+                ) {
+                Column(
+                    modifier = Modifier.padding(24.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                ) {
+                    Spacer(Modifier.height(16.dp))
 
-            Box(
-                modifier = Modifier
-                    .size(140.dp)
-                    .clip(RoundedCornerShape(24.dp))
-                    .background(RingDark),
-            ) {
-                job.thumbnailUrl?.let {
-                    AsyncImage(
-                        model = it,
-                        contentDescription = null,
-                        contentScale = ContentScale.Crop,
-                        modifier = Modifier.fillMaxSize(),
-                    )
-                }
-            }
-            Spacer(Modifier.height(12.dp))
-            EditableTitle(value = job.name, onChange = onRename)
-            Text(job.uploader, color = RingMuted, fontWeight = FontWeight.Medium)
-            Spacer(Modifier.height(16.dp))
-            Text(
-                "Your Ringtone is ready!",
-                style = MaterialTheme.typography.headlineMedium,
-                color = RingDark,
-                modifier = Modifier.fillMaxWidth(),
-                textAlign = TextAlign.Center,
-            )
-            Spacer(Modifier.height(20.dp))
-            Button(
-                onClick = {
-                    job.ringtoneFile?.let { file ->
-                        val ok = saveRingtoneToDownloads(context, file, job.name)
-                        Toast.makeText(
-                            context,
-                            if (ok) "Saved to Downloads" else "Could not save file",
-                            Toast.LENGTH_SHORT,
-                        ).show()
-                    }
-                },
-                colors = ButtonDefaults.buttonColors(containerColor = RingDark, contentColor = RingWhite),
-                shape = RoundedCornerShape(50),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(56.dp),
-            ) { Text("DOWNLOAD", fontWeight = FontWeight.Bold) }
-            Spacer(Modifier.height(12.dp))
-            Button(
-                onClick = {
-                    job.ringtoneFile?.let { file ->
-                        val ok = saveAsSystemRingtone(context, file, job.name)
-                        if (ok) {
-                            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M ||
-                                Settings.System.canWrite(context)
-                            ) {
-                                setAsDefaultRingtone(context, file, job.name)
-                            } else {
-                                Toast.makeText(
-                                    context,
-                                    "Ringtone saved! Grant WRITE_SETTINGS in Settings to set as default.",
-                                    Toast.LENGTH_LONG,
-                                ).show()
-                                val intent = Intent(Settings.ACTION_MANAGE_WRITE_SETTINGS).apply {
-                                    data = Uri.parse("package:${context.packageName}")
-                                }
-                                context.startActivity(intent)
-                            }
-                        } else {
-                            Toast.makeText(
-                                context,
-                                "Could not set ringtone",
-                                Toast.LENGTH_SHORT,
-                            ).show()
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.Center,
+                    ) {
+                        Text(
+                            "Ringtone Ready",
+                            style = MaterialTheme.typography.titleMedium,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            fontWeight = FontWeight.Bold,
+                        )
+                        Spacer(Modifier.width(10.dp))
+                        Box(
+                            modifier = Modifier
+                                .size(22.dp)
+                                .clip(CircleShape)
+                                .background(MaterialTheme.colorScheme.primary),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            Icon(
+                                imageVector = Icons.Filled.CheckCircle,
+                                contentDescription = null,
+                                modifier = Modifier.size(16.dp),
+                                tint = MaterialTheme.colorScheme.onPrimary,
+                            )
                         }
                     }
-                },
-                colors = ButtonDefaults.buttonColors(containerColor = RingDark, contentColor = RingWhite),
-                shape = RoundedCornerShape(50),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(56.dp),
-            ) { Text("SET AS RINGTONE", fontWeight = FontWeight.Bold) }
 
-        Spacer(Modifier.height(24.dp))
+                    Spacer(Modifier.height(16.dp))
 
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-        ) {
-            OutlinedButton(
-                onClick = onBack,
-                modifier = Modifier
-                    .weight(1f)
-                    .height(52.dp),
-                shape = RoundedCornerShape(50),
-            ) { Text("BACK", color = RingDark, fontWeight = FontWeight.Bold) }
-            Spacer(Modifier.width(12.dp))
-            Button(
+                    Card(
+                        shape = RoundedCornerShape(24.dp),
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.surfaceContainerHighest,
+                        ),
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(16.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(160.dp)
+                                    .clip(RoundedCornerShape(20.dp))
+                                    .background(MaterialTheme.colorScheme.surfaceContainerHigh),
+                            ) {
+                                job.thumbnailUrl?.let {
+                                    AsyncImage(
+                                        model = it,
+                                        contentDescription = null,
+                                        contentScale = ContentScale.Crop,
+                                        modifier = Modifier.fillMaxSize(),
+                                    )
+                                }
+                            }
+                            Spacer(Modifier.height(12.dp))
+                            EditableTitle(value = job.name, onChange = onRename)
+                            Text(job.uploader, color = MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.Medium)
+                        }
+                    }
+
+                    Spacer(Modifier.height(16.dp))
+
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(16.dp))
+                            .background(MaterialTheme.colorScheme.surfaceContainer)
+                            .padding(horizontal = 16.dp, vertical = 12.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Icon(
+                            imageVector = Icons.Outlined.Schedule,
+                            contentDescription = null,
+                            modifier = Modifier.size(18.dp),
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                        Spacer(Modifier.width(8.dp))
+                        Text(
+                            "Ringtone duration",
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.Medium,
+                        )
+                        Spacer(Modifier.weight(1f))
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(MaterialTheme.colorScheme.surfaceVariant)
+                                .padding(horizontal = 10.dp, vertical = 4.dp),
+                        ) {
+                            Text(
+                                "${job.ringtoneDurationSeconds?.let { it.toInt() } ?: "--"}s",
+                                color = MaterialTheme.colorScheme.onSurface,
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Bold,
+                            )
+                        }
+                    }
+
+                    Spacer(Modifier.height(20.dp))
+
+                    Button(
+                        onClick = {
+                            job.ringtoneFile?.let { file ->
+                                val ok = saveAsSystemRingtone(context, file, job.name)
+                                if (ok) {
+                                    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M ||
+                                        Settings.System.canWrite(context)
+                                    ) {
+                                        setAsDefaultRingtone(context, file, job.name)
+                                    } else {
+                                        Toast.makeText(
+                                            context,
+                                            "Ringtone saved! Grant WRITE_SETTINGS in Settings to set as default.",
+                                            Toast.LENGTH_LONG,
+                                        ).show()
+                                        val intent = Intent(Settings.ACTION_MANAGE_WRITE_SETTINGS).apply {
+                                            data = Uri.parse("package:${context.packageName}")
+                                        }
+                                        context.startActivity(intent)
+                                    }
+                                } else {
+                                    Toast.makeText(
+                                        context,
+                                        "Could not set ringtone",
+                                        Toast.LENGTH_SHORT,
+                                    ).show()
+                                }
+                            }
+                        },
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.primary,
+                            contentColor = MaterialTheme.colorScheme.onPrimary,
+                        ),
+                        shape = RoundedCornerShape(28.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(56.dp),
+                    ) {
+                        Icon(
+                            imageVector = Icons.Filled.CheckCircle,
+                            contentDescription = null,
+                            modifier = Modifier.size(20.dp),
+                        )
+                        Spacer(Modifier.width(8.dp))
+                        Text("SET AS RINGTONE", fontWeight = FontWeight.Bold)
+                    }
+                }
+            }
+
+            Spacer(Modifier.height(16.dp))
+
+            FilledTonalButton(
                 onClick = onMakeAnother,
-                modifier = Modifier
-                    .weight(1f)
-                    .height(52.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = RingDark, contentColor = RingWhite),
-                shape = RoundedCornerShape(50),
-            ) { Text("NEW", fontWeight = FontWeight.Bold) }
+                shape = RoundedCornerShape(28.dp),
+                modifier = Modifier.fillMaxWidth().height(48.dp),
+            ) { Text("CREATE NEW", fontWeight = FontWeight.Bold) }
         }
     }
-    }
+}
+
+private fun formatTime(seconds: Float): String {
+    val total = seconds.toInt().coerceAtLeast(0)
+    return "%d:%02d".format(total / 60, total % 60)
 }
 
 private fun saveRingtoneToDownloads(context: Context, file: File, name: String): Boolean {

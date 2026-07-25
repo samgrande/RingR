@@ -21,6 +21,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
@@ -30,12 +31,15 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
-import com.hexcorp.ringr.ui.theme.*
 import com.hexcorp.ringr.viewmodel.RingRJob
 import kotlinx.coroutines.delay
 import kotlin.math.abs
@@ -116,146 +120,180 @@ fun TrimScreen(
         }
     }
 
+    var playheadPosition by remember { mutableFloatStateOf(0f) }
+    LaunchedEffect(Unit) {
+        while (true) {
+            delay(50)
+            try {
+                playheadPosition = mediaPlayer.currentPosition / 1000f
+            } catch (_: Exception) {}
+        }
+    }
+
     Box(
         modifier = Modifier.fillMaxSize(),
         contentAlignment = Alignment.Center,
     ) {
-        Column(
-            modifier = Modifier
-                .wrapContentHeight()
-                .background(RingPanel, RoundedCornerShape(40.dp))
-                .padding(20.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
+        Card(
+            modifier = Modifier.wrapContentHeight(),
+            shape = RoundedCornerShape(32.dp),
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+            ),
         ) {
-        Text("Trim Your Ringtone", style = MaterialTheme.typography.titleMedium, color = RingDark)
-        Spacer(Modifier.height(24.dp))
+            Column(
+                modifier = Modifier.padding(horizontal = 24.dp, vertical = 16.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+            ) {
+                Text("Trim Your Ringtone", style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.onSurface)
+                Spacer(Modifier.height(20.dp))
 
-        Row(
-            modifier = Modifier
-                .background(RingPill, RoundedCornerShape(50))
-                .padding(4.dp),
-        ) {
-            PRESETS.forEach { p ->
-                val active = abs(cropDuration - p) < 1f
+                Row(
+                    modifier = Modifier
+                        .background(MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(24.dp))
+                        .padding(3.dp),
+                ) {
+                    PRESETS.forEach { p ->
+                        val active = abs(cropDuration - p) < 1f
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(20.dp))
+                                .background(
+                                    if (active) MaterialTheme.colorScheme.primaryContainer
+                                    else Color.Transparent
+                                )
+                                .clickable {
+                                    val newDur = minOf(p.toFloat(), totalDuration)
+                                    cropDuration = newDur
+                                    if (cropStart + newDur > totalDuration) {
+                                        cropStart = totalDuration - newDur
+                                    }
+                                }
+                                .padding(horizontal = 20.dp, vertical = 10.dp),
+                        ) {
+                            Text(
+                                "${p}s",
+                                fontWeight = FontWeight.Bold,
+                                color = if (active) MaterialTheme.colorScheme.onPrimaryContainer
+                                        else MaterialTheme.colorScheme.onSurface,
+                            )
+                        }
+                    }
+                }
+
+                Spacer(Modifier.height(24.dp))
+
                 Box(
                     modifier = Modifier
-                        .clip(RoundedCornerShape(50))
-                        .background(if (active) RingAccentSoft else Color.Transparent)
-                        .clickable {
-                            val newDur = minOf(p.toFloat(), totalDuration)
-                            cropDuration = newDur
-                            if (cropStart + newDur > totalDuration) {
-                                cropStart = totalDuration - newDur
-                            }
-                        }
-                        .padding(horizontal = 20.dp, vertical = 10.dp),
+                        .size(168.dp)
+                        .clip(RoundedCornerShape(24.dp))
+                        .background(MaterialTheme.colorScheme.surfaceContainer)
+                        .clickable { muted = !muted },
+                    contentAlignment = Alignment.Center,
                 ) {
-                    Text("${p}s", fontWeight = FontWeight.Bold, color = RingDark)
+                    job.thumbnailUrl?.let {
+                        AsyncImage(
+                            model = it,
+                            contentDescription = null,
+                            contentScale = ContentScale.Crop,
+                            modifier = Modifier.fillMaxSize(),
+                        )
+                    }
+                    MuteOverlay(
+                        visible = showMuteFeedback,
+                        muted = muted,
+                    )
+                }
+
+                Spacer(Modifier.height(12.dp))
+                MarqueeText(text = job.name, modifier = Modifier.fillMaxWidth())
+                Text(job.uploader, color = MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.Medium, fontSize = 13.sp)
+
+                Spacer(Modifier.height(24.dp))
+
+                val startTime = formatTime(cropStart)
+                val endTime = formatTime(cropStart + cropDuration)
+                Surface(
+                    shape = RoundedCornerShape(16.dp),
+                    color = MaterialTheme.colorScheme.surfaceContainer,
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                        horizontalArrangement = Arrangement.SpaceEvenly,
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        InfoChip(label = "START", value = startTime)
+                        Spacer(Modifier.width(12.dp))
+                        InfoChip(label = "END", value = endTime)
+                        Spacer(Modifier.width(12.dp))
+                        InfoChip(label = "TOTAL", value = formatTime(totalDuration))
+                    }
+                }
+
+                Spacer(Modifier.height(20.dp))
+
+                var canvasWidth by remember { mutableFloatStateOf(1f) }
+
+                MinimalWaveform(
+                    waveform = job.waveformData,
+                    totalDuration = totalDuration,
+                    cropStart = cropStart,
+                    cropDuration = cropDuration,
+                    playheadPosition = playheadPosition,
+                    canvasWidth = canvasWidth,
+                    onSizeChanged = { canvasWidth = it },
+                    onCropStartChanged = { cropStart = it.coerceIn(0f, totalDuration - cropDuration) },
+                )
+
+                error?.let {
+                    Spacer(Modifier.height(8.dp))
+                    Text(it, color = MaterialTheme.colorScheme.error, fontWeight = FontWeight.Bold)
+                }
+
+                Spacer(Modifier.height(24.dp))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                ) {
+                    OutlinedButton(
+                        onClick = onBack,
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(52.dp),
+                        shape = RoundedCornerShape(28.dp),
+                    ) { Text("BACK", color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold) }
+
+                    Spacer(Modifier.width(16.dp))
+
+                    Button(
+                        onClick = {
+                            onProceed(
+                                cropStart.toDouble(),
+                                (cropStart + cropDuration).toDouble(),
+                            )
+                        },
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(52.dp),
+                        enabled = !loading,
+                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary, contentColor = MaterialTheme.colorScheme.onPrimary),
+                        shape = RoundedCornerShape(28.dp),
+                    ) { Text(if (loading) "PROCESSING\u2026" else "PROCEED", fontWeight = FontWeight.Bold) }
                 }
             }
         }
-
-        Spacer(Modifier.height(20.dp))
-
-        Box(
-            modifier = Modifier
-                .size(200.dp)
-                .clip(RoundedCornerShape(28.dp))
-                .background(RingDark)
-                .clickable { muted = !muted },
-            contentAlignment = Alignment.Center,
-        ) {
-            job.thumbnailUrl?.let {
-                AsyncImage(
-                    model = it,
-                    contentDescription = null,
-                    contentScale = ContentScale.Crop,
-                    modifier = Modifier.fillMaxSize(),
-                )
-            }
-
-            MuteOverlay(
-                visible = showMuteFeedback,
-                muted = muted,
-            )
-        }
-
-        Spacer(Modifier.height(12.dp))
-        EditableTitle(value = job.name, onChange = onRename)
-        Text(job.uploader, color = RingMuted, fontWeight = FontWeight.Medium, fontSize = 14.sp)
-
-        Spacer(Modifier.height(24.dp))
-
-        val startTime = formatTime(cropStart)
-        val endTime = formatTime(cropStart + cropDuration)
-        Text(
-            "$startTime \u2192 $endTime",
-            color = RingDark,
-            fontWeight = FontWeight.Bold,
-            fontSize = 15.sp,
-        )
-
-        Spacer(Modifier.height(40.dp))
-
-        var canvasWidth by remember { mutableFloatStateOf(1f) }
-
-        MinimalWaveform(
-            waveform = job.waveformData,
-            totalDuration = totalDuration,
-            cropStart = cropStart,
-            cropDuration = cropDuration,
-            canvasWidth = canvasWidth,
-            onSizeChanged = { canvasWidth = it },
-            onCropStartChanged = { cropStart = it.coerceIn(0f, totalDuration - cropDuration) },
-        )
-
-        Spacer(Modifier.height(4.dp))
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-        ) {
-            Text(formatTime(0f), color = RingMuted, fontSize = 11.sp)
-            Text(formatTime(totalDuration), color = RingMuted, fontSize = 11.sp)
-        }
-
-        error?.let {
-            Spacer(Modifier.height(12.dp))
-            Text(it, color = RingAccent, fontWeight = FontWeight.Bold)
-        }
-
-        Spacer(Modifier.height(24.dp))
-
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween,
-        ) {
-            OutlinedButton(
-                onClick = onBack,
-                modifier = Modifier
-                    .weight(1f)
-                    .height(52.dp),
-                shape = RoundedCornerShape(50),
-            ) { Text("BACK", color = RingDark, fontWeight = FontWeight.Bold) }
-
-            Spacer(Modifier.width(16.dp))
-
-            Button(
-                onClick = {
-                    onProceed(
-                        cropStart.toDouble(),
-                        (cropStart + cropDuration).toDouble(),
-                    )
-                },
-                modifier = Modifier
-                    .weight(1f)
-                    .height(52.dp),
-                enabled = !loading,
-                colors = ButtonDefaults.buttonColors(containerColor = RingDark, contentColor = RingWhite),
-                shape = RoundedCornerShape(50),
-            ) { Text(if (loading) "PROCESSING\u2026" else "PROCEED", fontWeight = FontWeight.Bold) }
-        }
     }
+}
+
+@Composable
+private fun InfoChip(label: String, value: String) {
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Text(label, color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 9.sp, fontWeight = FontWeight.Medium, letterSpacing = 1.sp)
+        Spacer(Modifier.height(4.dp))
+        Text(value, color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold, fontSize = 16.sp)
     }
 }
 
@@ -278,7 +316,7 @@ private fun MuteOverlay(visible: Boolean, muted: Boolean) {
                 imageVector = if (muted) Icons.AutoMirrored.Filled.VolumeOff else Icons.AutoMirrored.Filled.VolumeUp,
                 contentDescription = null,
                 modifier = Modifier.size(32.dp),
-                tint = RingAccent,
+                tint = MaterialTheme.colorScheme.secondary,
             )
         }
     }
@@ -290,20 +328,28 @@ private fun MinimalWaveform(
     totalDuration: Float,
     cropStart: Float,
     cropDuration: Float,
+    playheadPosition: Float,
     canvasWidth: Float,
     onSizeChanged: (Float) -> Unit,
     onCropStartChanged: (Float) -> Unit,
 ) {
-    val clipHeight = 44.dp
+    val clipHeight = 64.dp
     val density = LocalDensity.current
     val onCropStartChangedState = rememberUpdatedState(onCropStartChanged)
     val cropStartState = rememberUpdatedState(cropStart)
     val cropDurationState = rememberUpdatedState(cropDuration)
 
+    val primaryColor = MaterialTheme.colorScheme.primary
+    val primaryContainerColor = MaterialTheme.colorScheme.primaryContainer
+    val onPrimaryContainerColor = MaterialTheme.colorScheme.onPrimaryContainer
+    val onSurfaceDim = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.15f)
+
     Box(
         modifier = Modifier
             .fillMaxWidth()
             .height(clipHeight)
+            .clip(RoundedCornerShape(16.dp))
+            .background(MaterialTheme.colorScheme.surfaceContainerHighest)
             .onGloballyPositioned { coords ->
                 val w = coords.size.width.toFloat()
                 if (w > 0f) onSizeChanged(w)
@@ -326,30 +372,35 @@ private fun MinimalWaveform(
                 )
             },
     ) {
-        Canvas(
-            modifier = Modifier
-                .fillMaxSize()
-                .clip(RoundedCornerShape(16.dp))
-                .background(RingPill),
-        ) {
+        Canvas(modifier = Modifier.fillMaxSize()) {
             val w = size.width
             val h = size.height
 
-            val barCount = 50
+            val barCount = 60
             val step = w / (barCount + 1)
+            val barW = 6f
+            val maxBarH = h * 0.55f
+            val minBarH = h * 0.15f
 
             for (i in 0 until barCount) {
                 val x = step * (i + 1)
-                val isInCrop = x >= (cropStart / totalDuration * w) && x <= ((cropStart + cropDuration) / totalDuration * w)
-                val tall = i % 2 == 0
-                val barH = if (tall) h * 0.30f else h * 0.18f
+                val amplitude = waveform?.getOrNull((i * (waveform.size - 1).coerceAtLeast(1)) / barCount) ?: 0.5f
+                val barH = minBarH + (maxBarH - minBarH) * amplitude
                 val topY = (h - barH) / 2f
-                val bw = 7f
+
+                val isInCrop = x >= (cropStart / totalDuration * w) && x <= ((cropStart + cropDuration) / totalDuration * w)
+                val isPlayed = isInCrop && x <= (playheadPosition / totalDuration * w)
+
+                val barColor = when {
+                    isPlayed -> primaryColor
+                    isInCrop -> primaryContainerColor.copy(alpha = 0.5f)
+                    else -> onSurfaceDim
+                }
 
                 drawRect(
-                    color = if (isInCrop) RingAccent else RingDark.copy(alpha = 0.25f),
-                    topLeft = Offset(x - bw / 2f, topY),
-                    size = Size(bw, barH),
+                    color = barColor,
+                    topLeft = Offset(x - barW / 2f, topY),
+                    size = Size(barW, barH),
                 )
             }
         }
@@ -362,12 +413,13 @@ private fun MinimalWaveform(
             val cropW = (cropRightPx - cropLeftPx).coerceAtLeast(0f)
 
             if (cropW > 0f) {
-                val rectColor = Color(0xFFE00202).copy(alpha = 0.50f)
-                val strokeColor = Color(0xFF871111)
+                val fillColor = primaryColor.copy(alpha = 0.08f)
+                val strokeColor = primaryColor.copy(alpha = 0.5f)
                 val cornerR = 16.dp.toPx()
+                val borderW = 2.dp.toPx()
 
                 drawRoundRect(
-                    color = rectColor,
+                    color = fillColor,
                     topLeft = Offset(cropLeftPx, 0f),
                     size = Size(cropW, h),
                     cornerRadius = CornerRadius(cornerR, cornerR),
@@ -377,9 +429,48 @@ private fun MinimalWaveform(
                     topLeft = Offset(cropLeftPx, 0f),
                     size = Size(cropW, h),
                     cornerRadius = CornerRadius(cornerR, cornerR),
-                    style = Stroke(width = with(density) { 5.dp.toPx() }),
+                    style = Stroke(width = borderW),
                 )
             }
+        }
+    }
+}
+
+@Composable
+private fun MarqueeText(text: String, modifier: Modifier = Modifier) {
+    var containerWidth by remember { mutableIntStateOf(0) }
+    var textWidth by remember { mutableIntStateOf(0) }
+    var offsetX by remember { mutableFloatStateOf(0f) }
+
+    Box(
+        modifier = modifier.clipToBounds().onSizeChanged { containerWidth = it.width },
+    ) {
+        Text(
+            text = text,
+            style = MaterialTheme.typography.titleMedium,
+            color = MaterialTheme.colorScheme.onSurface,
+            textAlign = if (textWidth <= containerWidth) TextAlign.Center else TextAlign.Start,
+            maxLines = 1,
+            overflow = TextOverflow.Visible,
+            softWrap = false,
+            onTextLayout = { textWidth = it.size.width },
+            modifier = Modifier
+                .fillMaxWidth()
+                .then(if (textWidth > containerWidth) Modifier.offset { IntOffset(offsetX.toInt(), 0) } else Modifier),
+        )
+    }
+
+    LaunchedEffect(text, textWidth, containerWidth) {
+        offsetX = 0f
+        if (textWidth > containerWidth && containerWidth > 0) {
+            delay(1200)
+            val distance = (textWidth - containerWidth).toFloat()
+            val steps = 80
+            for (i in 1..steps) {
+                offsetX = -(distance * i / steps)
+                delay(25)
+            }
+            delay(2000)
         }
     }
 }
