@@ -5,6 +5,7 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
@@ -155,13 +156,18 @@ fun TrimScreen(
                 ) {
                     PRESETS.forEach { p ->
                         val active = abs(cropDuration - p) < 1f
+                        val bgColor by animateColorAsState(
+                            if (active) MaterialTheme.colorScheme.tertiaryContainer
+                            else Color.Transparent,
+                        )
+                        val textColor by animateColorAsState(
+                            if (active) MaterialTheme.colorScheme.onTertiaryContainer
+                            else MaterialTheme.colorScheme.onSurface,
+                        )
                         Box(
                             modifier = Modifier
                                 .clip(RoundedCornerShape(20.dp))
-                                .background(
-                                    if (active) MaterialTheme.colorScheme.primaryContainer
-                                    else Color.Transparent
-                                )
+                                .background(bgColor)
                                 .clickable {
                                     val newDur = minOf(p.toFloat(), totalDuration)
                                     cropDuration = newDur
@@ -174,8 +180,7 @@ fun TrimScreen(
                             Text(
                                 "${p}s",
                                 fontWeight = FontWeight.Bold,
-                                color = if (active) MaterialTheme.colorScheme.onPrimaryContainer
-                                        else MaterialTheme.colorScheme.onSurface,
+                                color = textColor,
                             )
                         }
                     }

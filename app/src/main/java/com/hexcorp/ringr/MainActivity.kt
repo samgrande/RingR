@@ -5,6 +5,13 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.viewModels
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
@@ -88,7 +95,15 @@ fun RingRApp(viewModel: RingRViewModel) {
             }
 
             Box(modifier = Modifier.weight(1f).padding(horizontal = 16.dp, vertical = 8.dp)) {
-                when (uiState.step) {
+                AnimatedContent(
+                    targetState = uiState.step,
+                    transitionSpec = {
+                        val dir = if (targetState.ordinal > initialState.ordinal) 1 else -1
+                        slideInVertically(tween(300)) { it * dir } + fadeIn(tween(200)) togetherWith
+                        slideOutVertically(tween(300)) { -it * dir } + fadeOut(tween(200))
+                    },
+                ) { step ->
+                    when (step) {
                     Step.LANDING -> LandingScreen(
                         loading = uiState.loading,
                         error = uiState.error,
@@ -118,4 +133,5 @@ fun RingRApp(viewModel: RingRViewModel) {
             }
         }
     }
+}
 }
