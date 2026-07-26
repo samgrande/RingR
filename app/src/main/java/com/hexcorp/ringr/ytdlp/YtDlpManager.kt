@@ -30,6 +30,7 @@ class YtDlpManager(private val context: Context) {
         val request = YoutubeDLRequest(url).apply {
             addOption("--no-playlist")
             addOption("--skip-download")
+            addExtractorArgs()
         }
         val info = try {
             YoutubeDL.getInstance().getInfo(request)
@@ -58,6 +59,7 @@ class YtDlpManager(private val context: Context) {
             addOption("-o", outFile.absolutePath)
             addOption("--force-overwrites")
             addOption("--no-part")
+            addExtractorArgs()
         }
 
         try {
@@ -100,6 +102,7 @@ class YtDlpManager(private val context: Context) {
             addOption("-o", outFile.absolutePath)
             addOption("--force-overwrites")
             addOption("--no-part")
+            addExtractorArgs()
         }
 
         try {
@@ -223,6 +226,13 @@ class YtDlpManager(private val context: Context) {
 
     fun cleanup(jobId: String) {
         workDir.listFiles { f -> f.name.startsWith(jobId) }?.forEach { it.delete() }
+    }
+
+    private fun YoutubeDLRequest.addExtractorArgs() {
+        addOption("--extractor-args", "youtube:player_client=android,tv")
+        addOption("--extractor-retries", "5")
+        addOption("--fragment-retries", "10")
+        addOption("--retry-sleep", "3")
     }
 
     companion object {

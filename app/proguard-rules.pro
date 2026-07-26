@@ -1,4 +1,4 @@
-# Add project-specific ProGuard rules here.
-# yt-dlp/ffmpeg/Chaquopy assets are loaded at runtime, not reflectively
-# referenced in a way that typically needs keep rules — revisit if release
-# builds crash with ClassNotFoundException after enabling minification.
+-keep class com.yausername.youtubedl_android.** { *; }
+-keep class com.yausername.youtubedl_android.mapper.** { *; }
+-keep class com.yausername.ffmpeg.** { *; }
+-keep class com.yausername.youtubedl_common.** { *; }

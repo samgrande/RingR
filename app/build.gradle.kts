@@ -28,11 +28,24 @@ android {
         }
     }
 
+    splits {
+        abi {
+            isEnable = true
+            reset()
+            include("armeabi-v7a", "arm64-v8a", "x86", "x86_64")
+            isUniversalApk = true
+        }
+    }
+
     buildTypes {
         release {
             signingConfig = signingConfigs.getByName("release")
             isMinifyEnabled = false
-            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
+            isShrinkResources = false
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro",
+            )
         }
     }
 
@@ -54,6 +67,7 @@ android {
     packaging {
         jniLibs {
             useLegacyPackaging = true
+            excludes += "**/libpython.zip.so"
         }
         resources {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
@@ -83,6 +97,7 @@ dependencies {
     // yt-dlp + ffmpeg bundled for Android (Maven Central — io.github.junkfood02.youtubedl-android 0.18.1)
     implementation(libs.youtubedl.android)
     implementation(libs.youtubedl.android.ffmpeg)
+    implementation(libs.youtubedl.android.common)
 
     implementation(libs.kotlinx.coroutines.android)
 

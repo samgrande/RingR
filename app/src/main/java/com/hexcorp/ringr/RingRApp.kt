@@ -5,13 +5,16 @@ import android.util.Log
 import com.yausername.ffmpeg.FFmpeg
 import com.yausername.youtubedl_android.YoutubeDL
 import com.yausername.youtubedl_android.YoutubeDLException
+import com.yausername.youtubedl_common.SharedPrefsHelper
+import com.yausername.youtubedl_common.utils.ZipUtils
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import java.io.File
+import java.util.zip.ZipFile
 
 class RingRApp : Application() {
 
-    // Exposed so screens can show "still preparing" state on cold start.
     var isReady: Boolean = false
         private set
 
@@ -20,25 +23,84 @@ class RingRApp : Application() {
 
         CoroutineScope(Dispatchers.IO).launch {
             try {
+                extractStdlib()
                 YoutubeDL.getInstance().init(this@RingRApp)
                 FFmpeg.getInstance().init(this@RingRApp)
                 isReady = true
                 Log.i(TAG, "yt-dlp + ffmpeg initialized")
 
-                // Update yt-dlp on every cold start so extractors stay current.
-                // YouTube frequently breaks old extractors; this keeps things working.
                 try {
+                    // MASTER = daily builds from every commit, most up-to-date JS challenges
                     val updateStatus = YoutubeDL.getInstance()
-                        .updateYoutubeDL(this@RingRApp, YoutubeDL.UpdateChannel.NIGHTLY)
+                        .updateYoutubeDL(this@RingRApp, YoutubeDL.UpdateChannel.MASTER)
                     Log.i(TAG, "yt-dlp update result: $updateStatus")
                 } catch (e: Exception) {
-                    // Update failure is non-fatal — existing binary can still work.
                     Log.w(TAG, "yt-dlp update failed (will use cached binary): ${e.message}")
                 }
 
             } catch (e: YoutubeDLException) {
                 Log.e(TAG, "Failed to initialize yt-dlp/ffmpeg", e)
             }
+        }
+    }
+
+    private fun extractStdlib() {
+        val pythonDir = File(noBackupFilesDir, "youtubedl-android/packages/python")
+        val versionFile = File(pythonDir, ".stdlib_version")
+
+        val currentHash = try {
+            assets.open("python-stdlib.zip").use { stream ->
+                val md = java.security.MessageDigest.getInstance("MD5")
+                val buf = ByteArray(8192)
+                while (true) {
+                    val n = stream.read(buf)
+                    if (n < 0) break
+                    md.update(buf, 0, n)
+                }
+                md.digest().joinToString("") { "%02x".format(it) }
+            }
+        } catch (e: Exception) {
+            Log.w(TAG, "python-stdlib.zip not in assets, skipping extraction")
+            return
+        }
+
+        if (pythonDir.exists() && versionFile.exists() && versionFile.readText() == currentHash) {
+            return
+        }
+
+        pythonDir.deleteRecursively()
+        pythonDir.mkdirs()
+
+        try {
+            val tempZip = File(cacheDir, "python-stdlib.zip")
+            assets.open("python-stdlib.zip").use { input ->
+                tempZip.outputStream().use { output ->
+                    input.copyTo(output)
+                }
+            }
+
+            // Create all directories first so symlink creation doesn't fail (the
+            // library's ZipUtils.unzip doesn't mkdirs for symlink entries)
+            java.util.zip.ZipFile(tempZip).use { zf ->
+                val entries = zf.entries()
+                while (entries.hasMoreElements()) {
+                    val entry = entries.nextElement()
+                    if (entry.isDirectory) {
+                        File(pythonDir, entry.name).mkdirs()
+                    }
+                }
+            }
+
+            ZipUtils.unzip(tempZip, pythonDir)
+            tempZip.delete()
+
+            versionFile.writeText(currentHash)
+            SharedPrefsHelper.update(this, "pythonLibVersion", "0")
+            Log.i(TAG, "Python stdlib extracted (${currentHash.take(8)}…)")
+        } catch (e: Exception) {
+            pythonDir.deleteRecursively()
+            Log.e(TAG, "Failed to extract Python stdlib", e)
+            throw e
         }
     }
 
