@@ -51,6 +51,13 @@ class RingRViewModel(application: Application) : AndroidViewModel(application) {
         }
         val cleanUrl = sanitizeUrl(url.trim())
         Log.d(TAG, "submitLink: original=$url sanitized=$cleanUrl")
+
+        if (cleanUrl.contains("playlist", ignoreCase = true) ||
+            cleanUrl.contains("youtube.com/playlist", ignoreCase = true)) {
+            _uiState.update { it.copy(error = "Playlist links are not supported. Please paste a single video link.") }
+            return
+        }
+
         _uiState.update { it.copy(step = Step.LOADING, loading = true, error = null) }
 
         viewModelScope.launch {

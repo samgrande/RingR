@@ -25,6 +25,8 @@ fun BackgroundShapes() {
     val fillDarker = MaterialTheme.colorScheme.tertiary.copy(alpha = 0.18f)
     val strokeColor = MaterialTheme.colorScheme.tertiary.copy(alpha = 0.20f)
     val dotColor = MaterialTheme.colorScheme.tertiary.copy(alpha = 0.12f)
+    val redFill = MaterialTheme.colorScheme.primary.copy(alpha = 0.06f)
+    val redStroke = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
 
     val infiniteTransition = rememberInfiniteTransition()
     val drift1 by infiniteTransition.animateFloat(
@@ -153,6 +155,21 @@ fun BackgroundShapes() {
                 cornerRadius = CornerRadius(20f * s),
             )
         }
+
+        // Red accent — small filled circle
+        drawCircle(
+            color = redFill,
+            radius = 40f * s,
+            center = Offset(w * 0.55f + drift1 * amp * 0.4f, h * 0.45f + drift2 * amp * 0.5f),
+        )
+
+        // Red accent — stroked circle
+        drawCircle(
+            color = redStroke,
+            radius = 55f * s,
+            center = Offset(w * 0.50f + drift3 * amp * 0.3f, h * 0.42f + drift1 * amp * 0.4f),
+            style = Stroke(width = 2f * s),
+        )
     }
 }
 
