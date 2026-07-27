@@ -2,6 +2,9 @@ package com.hexcorp.ringr.ui.screens
 
 import android.media.MediaPlayer
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.ui.platform.LocalLifecycleOwner
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
 import androidx.compose.animation.core.animateIntOffsetAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.fadeIn
@@ -74,6 +77,29 @@ fun TrimScreen(
     val cropDurationRef = rememberUpdatedState(cropDuration)
     var playheadPosition by remember { mutableFloatStateOf(0f) }
     var playerReady by remember { mutableStateOf(false) }
+
+    val lifecycleOwner = LocalLifecycleOwner.current
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            when (event) {
+                Lifecycle.Event.ON_PAUSE -> {
+                    if (mediaPlayer.isPlaying) {
+                        mediaPlayer.pause()
+                    }
+                }
+                Lifecycle.Event.ON_RESUME -> {
+                    if (playerReady && !mediaPlayer.isPlaying) {
+                        mediaPlayer.start()
+                    }
+                }
+                else -> {}
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+        }
+    }
 
     fun preparePlayer(file: File, startMs: Int) {
         playerReady = false
