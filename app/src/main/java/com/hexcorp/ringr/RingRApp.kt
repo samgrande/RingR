@@ -2,7 +2,6 @@ package com.hexcorp.ringr
 
 import android.app.Application
 import android.util.Log
-import com.yausername.ffmpeg.FFmpeg
 import com.yausername.youtubedl_android.YoutubeDL
 import com.yausername.youtubedl_android.YoutubeDLException
 import com.yausername.youtubedl_common.SharedPrefsHelper
@@ -25,9 +24,8 @@ class RingRApp : Application() {
             try {
                 extractStdlib()
                 YoutubeDL.getInstance().init(this@RingRApp)
-                FFmpeg.getInstance().init(this@RingRApp)
                 isReady = true
-                Log.i(TAG, "yt-dlp + ffmpeg initialized")
+                Log.i(TAG, "yt-dlp initialized")
 
                 try {
                     // MASTER = daily builds from every commit, most up-to-date JS challenges
@@ -39,7 +37,7 @@ class RingRApp : Application() {
                 }
 
             } catch (e: YoutubeDLException) {
-                Log.e(TAG, "Failed to initialize yt-dlp/ffmpeg", e)
+                Log.e(TAG, "Failed to initialize yt-dlp", e)
             }
         }
     }

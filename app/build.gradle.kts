@@ -40,8 +40,8 @@ android {
     buildTypes {
         release {
             signingConfig = signingConfigs.getByName("release")
-            isMinifyEnabled = false
-            isShrinkResources = false
+            isMinifyEnabled = true
+            isShrinkResources = true
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro",
@@ -94,9 +94,8 @@ dependencies {
     // Lottie for loading animation
     implementation(libs.lottie.compose)
 
-    // yt-dlp + ffmpeg bundled for Android (Maven Central — io.github.junkfood02.youtubedl-android 0.18.1)
+    // yt-dlp bundled for Android (Maven Central — io.github.junkfood02.youtubedl-android 0.18.1)
     implementation(libs.youtubedl.android)
-    implementation(libs.youtubedl.android.ffmpeg)
     implementation(libs.youtubedl.android.common)
 
     implementation(libs.kotlinx.coroutines.android)

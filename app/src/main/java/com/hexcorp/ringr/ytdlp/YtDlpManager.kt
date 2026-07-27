@@ -2,8 +2,10 @@ package com.hexcorp.ringr.ytdlp
 
 import android.content.Context
 import android.media.MediaCodec
+import android.media.MediaCodecInfo
 import android.media.MediaExtractor
 import android.media.MediaFormat
+import android.media.MediaMuxer
 import android.util.Log
 import com.yausername.youtubedl_android.YoutubeDL
 import com.yausername.youtubedl_android.YoutubeDLRequest
@@ -11,6 +13,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.ByteArrayOutputStream
 import java.io.File
+import java.nio.ByteBuffer
 
 data class VideoMeta(
     val title: String,
@@ -53,9 +56,6 @@ class YtDlpManager(private val context: Context) {
         val request = YoutubeDLRequest(url).apply {
             addOption("-f", "bestaudio[ext=m4a]/bestaudio[ext=opus]/bestaudio/best")
             addOption("--no-playlist")
-            addOption("--extract-audio")
-            addOption("--audio-format", "m4a")
-            addOption("--audio-quality", "0")
             addOption("-o", outFile.absolutePath)
             addOption("--force-overwrites")
             addOption("--no-part")
@@ -82,39 +82,97 @@ class YtDlpManager(private val context: Context) {
     }
 
     suspend fun trimAudio(
-        url: String,
         jobId: String,
         startSec: Double,
         durationSec: Double,
         sourceFile: File? = null,
     ): File = withContext(Dispatchers.IO) {
-        val outFile = File(workDir, "$jobId.ringtone.mp3")
-        val endSec = startSec + durationSec
-        val sectionSpec = "*${startSec.toLong()}-${endSec.toLong()}"
+        val srcFile = sourceFile
+            ?: throw RingRExtractionException("Source file required for trimming.")
+        val outFile = File(workDir, "$jobId.ringtone.m4a")
 
-        val request = YoutubeDLRequest(url).apply {
-            addOption("-f", "bestaudio[ext=m4a]/bestaudio[ext=opus]/bestaudio/best")
-            addOption("--no-playlist")
-            addOption("--download-sections", sectionSpec)
-            addOption("--extract-audio")
-            addOption("--audio-format", "mp3")
-            addOption("--audio-quality", "192K")
-            addOption("-o", outFile.absolutePath)
-            addOption("--force-overwrites")
-            addOption("--no-part")
-            addExtractorArgs()
-        }
-
+        val extractor = MediaExtractor()
         try {
-            YoutubeDL.getInstance().execute(request, "$jobId-trim", null)
+            extractor.setDataSource(srcFile.absolutePath)
+
+            var audioTrackIndex = -1
+            for (i in 0 until extractor.trackCount) {
+                val fmt = extractor.getTrackFormat(i)
+                if (fmt.getString(MediaFormat.KEY_MIME)?.startsWith("audio/") == true) {
+                    audioTrackIndex = i
+                    break
+                }
+            }
+            if (audioTrackIndex < 0) {
+                throw RingRExtractionException("No audio track found in source file.")
+            }
+
+            extractor.selectTrack(audioTrackIndex)
+            val trackFormat = extractor.getTrackFormat(audioTrackIndex)
+            val totalUs = trackFormat.getLong(MediaFormat.KEY_DURATION, 0L)
+            val startUs = (startSec * 1_000_000).toLong()
+            val endUs = ((startSec + durationSec) * 1_000_000).toLong()
+
+            Log.i(TAG, "trimAudio: startSec=$startSec durationSec=$durationSec " +
+                    "startUs=$startUs endUs=$endUs totalUs=$totalUs")
+
+            extractor.seekTo(startUs, MediaExtractor.SEEK_TO_CLOSEST_SYNC)
+
+            val muxer = MediaMuxer(outFile.absolutePath, MediaMuxer.OutputFormat.MUXER_OUTPUT_MPEG_4)
+            val muxerTrackIndex = muxer.addTrack(trackFormat)
+            muxer.start()
+
+            val directBuf = ByteBuffer.allocateDirect(256 * 1024)
+            val bufferInfo = MediaCodec.BufferInfo()
+            var wroteSamples = false
+            var sampleCount = 0
+            var firstSampleTime = -1L
+            var lastSampleTime = -1L
+
+            while (true) {
+                val sampleSize = extractor.readSampleData(directBuf, 0)
+                if (sampleSize < 0) break
+
+                val sampleTime = extractor.sampleTime
+                if (firstSampleTime < 0) firstSampleTime = sampleTime
+                lastSampleTime = sampleTime
+
+                if (sampleTime > endUs) {
+                    Log.d(TAG, "trimAudio: reached end at sampleTime=$sampleTime")
+                    break
+                }
+
+                if (sampleTime >= startUs) {
+                    directBuf.position(0)
+                    directBuf.limit(sampleSize)
+                    bufferInfo.set(0, sampleSize, sampleTime, extractor.sampleFlags)
+                    muxer.writeSampleData(muxerTrackIndex, directBuf, bufferInfo)
+                    wroteSamples = true
+                    sampleCount++
+                }
+
+                if (!extractor.advance()) break
+            }
+
+            muxer.stop()
+            muxer.release()
+
+            Log.i(TAG, "trimAudio: OK — $sampleCount samples, " +
+                    "firstTime=$firstSampleTime lastTime=$lastSampleTime, " +
+                    "file=${outFile.length()} bytes")
+
+            if (!wroteSamples) {
+                throw RingRExtractionException("No audio samples in selected range.")
+            }
+        } catch (e: RingRExtractionException) {
+            throw e
         } catch (e: Exception) {
             Log.e(TAG, "trimAudio failed", e)
             throw RingRExtractionException("Could not trim that clip. Try a different range.", e)
+        } finally {
+            extractor.release()
         }
 
-        if (!outFile.exists()) {
-            throw RingRExtractionException("Trim finished but the output file wasn't found.")
-        }
         outFile
     }
 

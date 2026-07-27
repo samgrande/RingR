@@ -9,6 +9,7 @@ import android.os.Build
 import android.os.Environment
 import android.provider.MediaStore
 import android.provider.Settings
+import android.util.Log
 import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -41,6 +42,7 @@ fun FinalizeScreen(
     onMakeAnother: () -> Unit,
 ) {
     val context = LocalContext.current
+    var isSaving by remember { mutableStateOf(false) }
 
     Box(
         modifier = Modifier.fillMaxSize(),
@@ -168,33 +170,47 @@ fun FinalizeScreen(
                     Spacer(Modifier.height(20.dp))
 
                     Button(
+                        enabled = !isSaving,
                         onClick = {
-                            job.ringtoneFile?.let { file ->
-                                val ok = saveAsSystemRingtone(context, file, job.name)
-                                if (ok) {
-                                    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M ||
-                                        Settings.System.canWrite(context)
-                                    ) {
-                                        setAsDefaultRingtone(context, file, job.name)
-                                    } else {
-                                        Toast.makeText(
-                                            context,
-                                            "Ringtone saved! Grant WRITE_SETTINGS in Settings to set as default.",
-                                            Toast.LENGTH_LONG,
-                                        ).show()
-                                        val intent = Intent(Settings.ACTION_MANAGE_WRITE_SETTINGS).apply {
-                                            data = Uri.parse("package:${context.packageName}")
-                                        }
-                                        context.startActivity(intent)
-                                    }
+                            if (isSaving) return@Button
+                            isSaving = true
+                            Log.d("RingR", "SET AS RINGTONE clicked, ringtoneFile=${job.ringtoneFile}")
+                            val file = job.ringtoneFile
+                            if (file == null || !file.exists()) {
+                                Log.e("RingR", "ringtoneFile is null or missing: $file")
+                                Toast.makeText(
+                                    context,
+                                    "Trim output file not found. Please trim again.",
+                                    Toast.LENGTH_LONG,
+                                ).show()
+                                isSaving = false
+                                return@Button
+                            }
+                            val ok = saveAsSystemRingtone(context, file, job.name)
+                            if (ok) {
+                                if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M ||
+                                    Settings.System.canWrite(context)
+                                ) {
+                                    setAsDefaultRingtone(context, file, job.name)
                                 } else {
                                     Toast.makeText(
                                         context,
-                                        "Could not set ringtone",
-                                        Toast.LENGTH_SHORT,
+                                        "Ringtone saved! Grant WRITE_SETTINGS in Settings to set as default.",
+                                        Toast.LENGTH_LONG,
                                     ).show()
+                                    val intent = Intent(Settings.ACTION_MANAGE_WRITE_SETTINGS).apply {
+                                        data = Uri.parse("package:${context.packageName}")
+                                    }
+                                    context.startActivity(intent)
                                 }
+                            } else {
+                                Toast.makeText(
+                                    context,
+                                    "Could not save ringtone. Check storage permissions.",
+                                    Toast.LENGTH_LONG,
+                                ).show()
                             }
+                            isSaving = false
                         },
                         colors = ButtonDefaults.buttonColors(
                             containerColor = MaterialTheme.colorScheme.primary,
@@ -237,8 +253,8 @@ private fun saveRingtoneToDownloads(context: Context, file: File, name: String):
     return try {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             val values = ContentValues().apply {
-                put(MediaStore.Downloads.DISPLAY_NAME, "$safeName.mp3")
-                put(MediaStore.Downloads.MIME_TYPE, "audio/mpeg")
+                put(MediaStore.Downloads.DISPLAY_NAME, "$safeName.m4a")
+                put(MediaStore.Downloads.MIME_TYPE, "audio/mp4")
                 put(MediaStore.Downloads.IS_PENDING, 1)
             }
             val resolver = context.contentResolver
@@ -250,7 +266,7 @@ private fun saveRingtoneToDownloads(context: Context, file: File, name: String):
         } else {
             @Suppress("DEPRECATION")
             val downloadsDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
-            val outFile = File(downloadsDir, "$safeName.mp3")
+            val outFile = File(downloadsDir, "$safeName.m4a")
             FileOutputStream(outFile).use { out -> file.inputStream().use { it.copyTo(out) } }
         }
         true
@@ -261,27 +277,42 @@ private fun saveRingtoneToDownloads(context: Context, file: File, name: String):
 
 private fun saveAsSystemRingtone(context: Context, file: File, name: String): Boolean {
     val safeName = name.replace(Regex("[^a-zA-Z0-9 _-]"), "").ifBlank { "ringtone" }
+    Log.d("RingR", "saveAsSystemRingtone: name=$safeName, file=$file, exists=${file.exists()}, len=${file.length()}")
     return try {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            val resolver = context.contentResolver
+            val collectionUri = MediaStore.Audio.Media.EXTERNAL_CONTENT_URI
+
+            // Remove any existing entries with same name
+            val delSelection = "${MediaStore.Audio.Media.DISPLAY_NAME}=?"
+            val delArgs = arrayOf("$safeName.m4a")
+            val deleted = resolver.delete(collectionUri, delSelection, delArgs)
+            Log.d("RingR", "saveAsSystemRingtone: deleted $deleted existing entries")
+
             val values = ContentValues().apply {
-                put(MediaStore.Audio.Media.DISPLAY_NAME, "$safeName.mp3")
-                put(MediaStore.Audio.Media.MIME_TYPE, "audio/mpeg")
+                put(MediaStore.Audio.Media.DISPLAY_NAME, "$safeName.m4a")
+                put(MediaStore.Audio.Media.MIME_TYPE, "audio/mp4")
                 put(MediaStore.Audio.Media.TITLE, safeName)
+                put(MediaStore.Audio.Media.RELATIVE_PATH, Environment.DIRECTORY_RINGTONES)
                 put(MediaStore.Audio.Media.IS_RINGTONE, 1)
                 put(MediaStore.Audio.Media.IS_PENDING, 1)
             }
-            val resolver = context.contentResolver
-            val collectionUri = MediaStore.Audio.Media.EXTERNAL_CONTENT_URI
-            val uri = resolver.insert(collectionUri, values) ?: return false
-            resolver.openOutputStream(uri)?.use { out -> file.inputStream().use { it.copyTo(out) } }
+            val uri = resolver.insert(collectionUri, values)
+            Log.d("RingR", "saveAsSystemRingtone: insert uri=$uri")
+            if (uri == null) { Log.e("RingR", "insert returned null"); return false }
+            val out = resolver.openOutputStream(uri)
+            Log.d("RingR", "saveAsSystemRingtone: outputStream=$out")
+            if (out == null) { Log.e("RingR", "openOutputStream returned null"); return false }
+            out.use { outStream -> file.inputStream().use { it.copyTo(outStream) } }
             values.clear()
             values.put(MediaStore.Audio.Media.IS_PENDING, 0)
-            resolver.update(uri, values, null, null)
+            val updated = resolver.update(uri, values, null, null)
+            Log.d("RingR", "saveAsSystemRingtone: updated=$updated rows")
         } else {
             @Suppress("DEPRECATION")
             val ringtonesDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_RINGTONES)
             ringtonesDir.mkdirs()
-            val outFile = File(ringtonesDir, "$safeName.mp3")
+            val outFile = File(ringtonesDir, "$safeName.m4a")
             FileOutputStream(outFile).use { out -> file.inputStream().use { it.copyTo(out) } }
             @Suppress("DEPRECATION")
             MediaStore.Audio.Media.getContentUriForPath(outFile.absolutePath)?.let { uri ->
@@ -294,16 +325,18 @@ private fun saveAsSystemRingtone(context: Context, file: File, name: String): Bo
         }
         true
     } catch (e: Exception) {
+        Log.e("RingR", "saveAsSystemRingtone exception", e)
         false
     }
 }
 
 private fun setAsDefaultRingtone(context: Context, file: File, name: String) {
     val safeName = name.replace(Regex("[^a-zA-Z0-9 _-]"), "").ifBlank { "ringtone" }
+    Log.d("RingR", "setAsDefaultRingtone: name=$safeName")
     val uri = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
         val projection = arrayOf(MediaStore.Audio.Media._ID)
         val selection = "${MediaStore.Audio.Media.DISPLAY_NAME}=?"
-        val args = arrayOf("$safeName.mp3")
+        val args = arrayOf("$safeName.m4a")
         val cursor = context.contentResolver.query(
             MediaStore.Audio.Media.EXTERNAL_CONTENT_URI,
             projection,
@@ -321,7 +354,7 @@ private fun setAsDefaultRingtone(context: Context, file: File, name: String) {
         @Suppress("DEPRECATION")
         val ringtonesDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_RINGTONES)
         @Suppress("DEPRECATION")
-        val outFile = File(ringtonesDir, "$safeName.mp3")
+        val outFile = File(ringtonesDir, "$safeName.m4a")
         if (outFile.exists()) {
             @Suppress("DEPRECATION")
             MediaStore.Audio.Media.getContentUriForPath(outFile.absolutePath)

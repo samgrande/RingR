@@ -97,12 +97,12 @@ class RingRViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch {
             try {
                 val ringtoneFile = manager.trimAudio(
-                    url = job.url,
                     jobId = job.id,
                     startSec = startSec,
                     durationSec = endSec - startSec,
                     sourceFile = job.sourceFile,
                 )
+                job.sourceFile?.delete()
                 val ringtoneDuration = (endSec - startSec).toFloat()
                 _uiState.update {
                     it.copy(

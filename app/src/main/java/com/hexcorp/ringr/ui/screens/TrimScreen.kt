@@ -49,6 +49,7 @@ import coil.compose.AsyncImage
 import com.hexcorp.ringr.viewmodel.RingRJob
 import kotlinx.coroutines.delay
 import kotlin.math.abs
+import java.io.File
 
 private val PRESETS = listOf(30, 60, 90)
 
@@ -71,44 +72,42 @@ fun TrimScreen(
 
     val cropStartRef = rememberUpdatedState(cropStart)
     val cropDurationRef = rememberUpdatedState(cropDuration)
+    var playheadPosition by remember { mutableFloatStateOf(0f) }
+    var playerReady by remember { mutableStateOf(false) }
 
-    LaunchedEffect(job.sourceFile) {
-        val file = job.sourceFile ?: return@LaunchedEffect
+    fun preparePlayer(file: File, startMs: Int) {
+        playerReady = false
         mediaPlayer.apply {
             reset()
             setDataSource(file.absolutePath)
             setOnPreparedListener {
-                seekTo((cropStartRef.value * 1000).toInt())
+                seekTo(startMs)
                 start()
-            }
-            setOnCompletionListener {
-                seekTo((cropStartRef.value * 1000).toInt())
-                start()
+                playerReady = true
             }
             prepareAsync()
         }
+    }
+
+    LaunchedEffect(job.sourceFile) {
+        val file = job.sourceFile ?: return@LaunchedEffect
+        preparePlayer(file, (cropStart * 1000).toInt())
+    }
+
+    LaunchedEffect(cropStart, cropDuration) {
+        if (!playerReady) return@LaunchedEffect
+        delay(300)
+        val startMs = (cropStart * 1000).toInt()
+        preparePlayer(job.sourceFile ?: return@LaunchedEffect, startMs)
     }
 
     LaunchedEffect(Unit) {
         while (true) {
             delay(200)
             try {
-                val startMs = (cropStartRef.value * 1000).toInt()
-                val endMs = ((cropStartRef.value + cropDurationRef.value) * 1000).toInt()
-                val pos = mediaPlayer.currentPosition
-                if (pos >= endMs + 1 || pos < startMs - 200) {
-                    mediaPlayer.seekTo(startMs)
-                }
+                playheadPosition = mediaPlayer.currentPosition / 1000f
             } catch (_: Exception) {}
         }
-    }
-
-    LaunchedEffect(cropStart) {
-        try {
-            if (mediaPlayer.isPlaying) {
-                mediaPlayer.seekTo((cropStart * 1000).toInt())
-            }
-        } catch (_: Exception) {}
     }
 
     var showMuteFeedback by remember { mutableStateOf(false) }
@@ -123,16 +122,6 @@ fun TrimScreen(
     DisposableEffect(Unit) {
         onDispose {
             mediaPlayer.release()
-        }
-    }
-
-    var playheadPosition by remember { mutableFloatStateOf(0f) }
-    LaunchedEffect(Unit) {
-        while (true) {
-            delay(50)
-            try {
-                playheadPosition = mediaPlayer.currentPosition / 1000f
-            } catch (_: Exception) {}
         }
     }
 
