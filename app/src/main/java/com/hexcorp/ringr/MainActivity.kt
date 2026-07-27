@@ -13,6 +13,7 @@ import androidx.compose.animation.core.spring
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
@@ -94,7 +95,7 @@ fun RingRApp(viewModel: RingRViewModel) {
         BackgroundShapes()
 
         Column(modifier = Modifier.fillMaxSize()) {
-            if (uiState.step != Step.LANDING) {
+            if (uiState.step != Step.LANDING && uiState.step != Step.LOADING) {
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -114,19 +115,28 @@ fun RingRApp(viewModel: RingRViewModel) {
                 }
             }
 
-            Box(modifier = Modifier.weight(1f).padding(horizontal = 16.dp, vertical = 8.dp)) {
+            Box(modifier = Modifier.weight(1f).then(
+                if (uiState.step == Step.LOADING) Modifier else Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+            )) {
                 AnimatedContent(
                     targetState = uiState.step,
                     transitionSpec = {
-                        val dir = if (targetState.ordinal > initialState.ordinal) 1 else -1
-                        val slideIn = slideInHorizontally(
-                            animationSpec = spring(stiffness = Spring.StiffnessLow),
-                        ) { it * dir } + fadeIn(spring()) +
-                            scaleIn(spring(), initialScale = 0.92f)
-                        val slideOut = slideOutHorizontally(
-                            animationSpec = spring(stiffness = Spring.StiffnessLow),
-                        ) { -it * dir } + fadeOut(spring())
-                        slideIn togetherWith slideOut
+                        if (targetState == Step.LOADING || initialState == Step.LOADING) {
+                            scaleIn(spring(stiffness = Spring.StiffnessLow), initialScale = 0f) +
+                                fadeIn(spring(stiffness = Spring.StiffnessLow)) togetherWith
+                            scaleOut(spring(stiffness = Spring.StiffnessLow), targetScale = 0f) +
+                                fadeOut(spring(stiffness = Spring.StiffnessLow))
+                        } else {
+                            val dir = if (targetState.ordinal > initialState.ordinal) 1 else -1
+                            val slideIn = slideInHorizontally(
+                                animationSpec = spring(stiffness = Spring.StiffnessLow),
+                            ) { it * dir } + fadeIn(spring()) +
+                                scaleIn(spring(), initialScale = 0.92f)
+                            val slideOut = slideOutHorizontally(
+                                animationSpec = spring(stiffness = Spring.StiffnessLow),
+                            ) { -it * dir } + fadeOut(spring())
+                            slideIn togetherWith slideOut
+                        }
                     },
                 ) { step ->
                     when (step) {
@@ -135,6 +145,73 @@ fun RingRApp(viewModel: RingRViewModel) {
                         error = uiState.error,
                         onSubmit = viewModel::submitLink,
                     )
+
+                    Step.LOADING -> {
+                        val composition by rememberLottieComposition(LottieCompositionSpec.RawRes(R.raw.loading))
+                        val progress by animateLottieCompositionAsState(
+                            composition = composition,
+                            iterations = Int.MAX_VALUE,
+                        )
+                        val primaryColor = MaterialTheme.colorScheme.primary
+                        val primaryArgb = primaryColor.toArgb()
+                        val dynamicProperties = rememberLottieDynamicProperties(
+                            rememberLottieDynamicProperty(
+                                property = LottieProperty.COLOR,
+                                keyPath = arrayOf("**"),
+                                value = primaryArgb,
+                            ),
+                            rememberLottieDynamicProperty(
+                                property = LottieProperty.STROKE_COLOR,
+                                keyPath = arrayOf("**"),
+                                value = primaryArgb,
+                            ),
+                        )
+                        val messages = listOf(
+                            "Cooking your ringtone...",
+                            "Fetching dope tunes...",
+                            "Vibing it up...",
+                            "Definitely working...",
+                            "Good choice of tune...",
+                        )
+                        var messageIndex by remember { mutableIntStateOf(0) }
+                        LaunchedEffect(Unit) {
+                            while (true) {
+                                delay(4000)
+                                messageIndex = (messageIndex + 1) % messages.size
+                            }
+                        }
+
+                        Box(
+                            modifier = Modifier.fillMaxSize(),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(240.dp)
+                                        .background(
+                                            MaterialTheme.colorScheme.surfaceContainerHigh,
+                                            shape = CircleShape,
+                                        ),
+                                    contentAlignment = Alignment.Center,
+                                ) {
+                                    LottieAnimation(
+                                        composition = composition,
+                                        progress = { progress },
+                                        modifier = Modifier.size(192.dp),
+                                        dynamicProperties = dynamicProperties,
+                                        contentScale = ContentScale.Fit,
+                                    )
+                                }
+                                Spacer(Modifier.height(40.dp))
+                                Text(
+                                    text = messages[messageIndex],
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                            }
+                        }
+                    }
 
                     Step.TRIM -> uiState.job?.let { job ->
                         TrimScreen(
@@ -160,79 +237,11 @@ fun RingRApp(viewModel: RingRViewModel) {
         }
     }
 
-        if (uiState.loading) {
-            val composition by rememberLottieComposition(LottieCompositionSpec.RawRes(R.raw.loading))
-            val progress by animateLottieCompositionAsState(
-                composition = composition,
-                iterations = Int.MAX_VALUE,
-            )
-            val primaryColor = MaterialTheme.colorScheme.primary
-            val primaryArgb = primaryColor.toArgb()
-            val dynamicProperties = rememberLottieDynamicProperties(
-                rememberLottieDynamicProperty(
-                    property = LottieProperty.COLOR,
-                    keyPath = arrayOf("**"),
-                    value = primaryArgb,
-                ),
-                rememberLottieDynamicProperty(
-                    property = LottieProperty.STROKE_COLOR,
-                    keyPath = arrayOf("**"),
-                    value = primaryArgb,
-                ),
-            )
-
-            val messages = listOf(
-                "Cooking your ringtone...",
-                "Fetching dope tunes...",
-                "Vibing it up...",
-                "Definitely working...",
-                "Good choice of tune...",
-            )
-            var messageIndex by remember { mutableIntStateOf(0) }
-            LaunchedEffect(Unit) {
-                while (true) {
-                    delay(4000)
-                    messageIndex = (messageIndex + 1) % messages.size
-                }
-            }
-
-            Box(
-                modifier = Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.3f)),
-                contentAlignment = Alignment.Center,
-            ) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Box(
-                        modifier = Modifier
-                            .size(240.dp)
-                            .background(
-                                MaterialTheme.colorScheme.surfaceContainerHigh,
-                                shape = CircleShape,
-                            ),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        LottieAnimation(
-                            composition = composition,
-                            progress = { progress },
-                            modifier = Modifier.size(192.dp),
-                            dynamicProperties = dynamicProperties,
-                            contentScale = ContentScale.Fit,
-                        )
-                    }
-                    Spacer(Modifier.height(40.dp))
-                    Text(
-                        text = messages[messageIndex],
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-            }
-        }
-
         var backPressedTime by remember { mutableStateOf(0L) }
         val context = LocalContext.current
         BackHandler(enabled = true) {
             when {
-                uiState.loading -> { }
+                uiState.step == Step.LOADING -> { }
                 uiState.step == Step.LANDING -> {
                     val now = System.currentTimeMillis()
                     if (now - backPressedTime < 2000) {

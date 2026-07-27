@@ -15,7 +15,7 @@ import java.io.File
 import java.net.URI
 import java.util.UUID
 
-enum class Step { LANDING, TRIM, FINALIZE }
+enum class Step { LANDING, LOADING, TRIM, FINALIZE }
 
 data class RingRJob(
     val id: String,
@@ -51,7 +51,7 @@ class RingRViewModel(application: Application) : AndroidViewModel(application) {
         }
         val cleanUrl = sanitizeUrl(url.trim())
         Log.d(TAG, "submitLink: original=$url sanitized=$cleanUrl")
-        _uiState.update { it.copy(loading = true, error = null) }
+        _uiState.update { it.copy(step = Step.LOADING, loading = true, error = null) }
 
         viewModelScope.launch {
             val jobId = UUID.randomUUID().toString().take(10)
@@ -81,10 +81,10 @@ class RingRViewModel(application: Application) : AndroidViewModel(application) {
                 }
             } catch (e: RingRExtractionException) {
                 Log.e(TAG, "Extraction failed: ${e.message}", e)
-                _uiState.update { it.copy(loading = false, error = e.message) }
+                _uiState.update { it.copy(step = Step.LANDING, loading = false, error = e.message) }
             } catch (e: Exception) {
                 Log.e(TAG, "Unexpected error", e)
-                _uiState.update { it.copy(loading = false, error = "Something went wrong. Try again.") }
+                _uiState.update { it.copy(step = Step.LANDING, loading = false, error = "Something went wrong. Try again.") }
             }
         }
     }
@@ -92,7 +92,7 @@ class RingRViewModel(application: Application) : AndroidViewModel(application) {
     fun proceedToFinalize(startSec: Double, endSec: Double) {
         val job = _uiState.value.job ?: return
 
-        _uiState.update { it.copy(loading = true, error = null) }
+        _uiState.update { it.copy(step = Step.LOADING, loading = true, error = null) }
 
         viewModelScope.launch {
             try {
@@ -112,9 +112,9 @@ class RingRViewModel(application: Application) : AndroidViewModel(application) {
                     )
                 }
             } catch (e: RingRExtractionException) {
-                _uiState.update { it.copy(loading = false, error = e.message) }
+                _uiState.update { it.copy(step = Step.TRIM, loading = false, error = e.message) }
             } catch (e: Exception) {
-                _uiState.update { it.copy(loading = false, error = "Could not process that clip.") }
+                _uiState.update { it.copy(step = Step.TRIM, loading = false, error = "Could not process that clip.") }
             }
         }
     }
