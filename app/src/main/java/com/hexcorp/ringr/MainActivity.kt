@@ -2,7 +2,9 @@ package com.hexcorp.ringr
 
 import android.app.Activity
 import android.os.Bundle
+import android.widget.Toast
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.viewModels
 import androidx.compose.animation.AnimatedContent
@@ -28,6 +30,7 @@ import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -148,13 +151,14 @@ fun RingRApp(viewModel: RingRViewModel) {
                         FinalizeScreen(
                             job = job,
                             onRename = viewModel::rename,
-                            onBack = viewModel::backToTrim,
+                            onBack = viewModel::backToLanding,
                             onMakeAnother = viewModel::makeAnother,
                         )
                     }
                 }
             }
         }
+    }
 
         if (uiState.loading) {
             val composition by rememberLottieComposition(LottieCompositionSpec.RawRes(R.raw.loading))
@@ -223,6 +227,23 @@ fun RingRApp(viewModel: RingRViewModel) {
                 }
             }
         }
+
+        var backPressedTime by remember { mutableStateOf(0L) }
+        val context = LocalContext.current
+        BackHandler(enabled = true) {
+            when {
+                uiState.loading -> { }
+                uiState.step == Step.LANDING -> {
+                    val now = System.currentTimeMillis()
+                    if (now - backPressedTime < 2000) {
+                        (context as? Activity)?.finish()
+                    } else {
+                        backPressedTime = now
+                        Toast.makeText(context, "Press back again to exit", Toast.LENGTH_SHORT).show()
+                    }
+                }
+                else -> viewModel.backToLanding()
+            }
+        }
     }
-}
 }
