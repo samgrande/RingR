@@ -79,16 +79,32 @@ fun TrimScreen(
     var playerReady by remember { mutableStateOf(false) }
 
     val lifecycleOwner = LocalLifecycleOwner.current
+
+    fun preparePlayer(file: File, startMs: Int) {
+        playerReady = false
+        mediaPlayer.apply {
+            reset()
+            setDataSource(file.absolutePath)
+            setOnPreparedListener {
+                seekTo(startMs)
+                if (lifecycleOwner.lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED)) {
+                    start()
+                }
+                playerReady = true
+            }
+            prepareAsync()
+        }
+    }
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
             when (event) {
                 Lifecycle.Event.ON_PAUSE -> {
-                    if (mediaPlayer.isPlaying) {
-                        mediaPlayer.pause()
-                    }
+                    if (mediaPlayer.isPlaying) mediaPlayer.pause()
                 }
                 Lifecycle.Event.ON_RESUME -> {
-                    if (playerReady && !mediaPlayer.isPlaying) {
+                    if (!playerReady && job.sourceFile != null) {
+                        preparePlayer(job.sourceFile, (cropStart * 1000).toInt())
+                    } else if (playerReady && !mediaPlayer.isPlaying) {
                         mediaPlayer.start()
                     }
                 }
@@ -98,20 +114,6 @@ fun TrimScreen(
         lifecycleOwner.lifecycle.addObserver(observer)
         onDispose {
             lifecycleOwner.lifecycle.removeObserver(observer)
-        }
-    }
-
-    fun preparePlayer(file: File, startMs: Int) {
-        playerReady = false
-        mediaPlayer.apply {
-            reset()
-            setDataSource(file.absolutePath)
-            setOnPreparedListener {
-                seekTo(startMs)
-                start()
-                playerReady = true
-            }
-            prepareAsync()
         }
     }
 

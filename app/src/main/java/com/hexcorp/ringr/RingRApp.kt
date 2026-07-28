@@ -1,7 +1,12 @@
 package com.hexcorp.ringr
 
 import android.app.Application
+import android.app.NotificationChannel
+import android.app.NotificationManager
 import android.util.Log
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.ProcessLifecycleOwner
 import com.yausername.youtubedl_android.YoutubeDL
 import com.yausername.youtubedl_android.YoutubeDLException
 import com.yausername.youtubedl_common.SharedPrefsHelper
@@ -19,6 +24,15 @@ class RingRApp : Application() {
 
     override fun onCreate() {
         super.onCreate()
+
+        createNotificationChannels()
+
+        ProcessLifecycleOwner.get().lifecycle.addObserver(LifecycleEventObserver { _, event ->
+            isForeground = when (event) {
+                Lifecycle.Event.ON_STOP -> false
+                else -> true
+            }
+        })
 
         CoroutineScope(Dispatchers.IO).launch {
             try {
@@ -127,7 +141,27 @@ class RingRApp : Application() {
         }
     }
 
+    private fun createNotificationChannels() {
+        val downloadChannel = NotificationChannel(
+            DOWNLOAD_CHANNEL_ID,
+            "Audio Download",
+            NotificationManager.IMPORTANCE_LOW
+        ).apply { description = "Shows download progress" }
+        val readyChannel = NotificationChannel(
+            READY_CHANNEL_ID,
+            "Ringtone Ready",
+            NotificationManager.IMPORTANCE_HIGH
+        ).apply { description = "Notifies when ringtone is ready to crop" }
+        val mgr = getSystemService(NotificationManager::class.java)
+        mgr.createNotificationChannel(downloadChannel)
+        mgr.createNotificationChannel(readyChannel)
+    }
+
     companion object {
+        const val DOWNLOAD_CHANNEL_ID = "ringr_download"
+        const val READY_CHANNEL_ID = "ringr_ready"
+        @Volatile
+        var isForeground = true
         private const val TAG = "RingRApp"
     }
 }

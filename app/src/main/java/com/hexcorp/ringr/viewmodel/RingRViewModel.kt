@@ -1,11 +1,13 @@
 package com.hexcorp.ringr.viewmodel
 
 import android.app.Application
+import android.content.Intent
 import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.hexcorp.ringr.service.DownloadEventBus
+import com.hexcorp.ringr.service.DownloadService
 import com.hexcorp.ringr.ytdlp.RingRExtractionException
-import com.hexcorp.ringr.ytdlp.VideoMeta
 import com.hexcorp.ringr.ytdlp.YtDlpManager
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -46,14 +48,57 @@ class RingRViewModel(application: Application) : AndroidViewModel(application) {
     val uiState: StateFlow<RingRUiState> = _uiState
 
     private var currentJobId: String? = null
-    private var fetchJob: Job? = null
+    private var currentCleanUrl: String? = null
+
+    init {
+        viewModelScope.launch {
+            DownloadEventBus.result.collect { result ->
+                if (result != null && _uiState.value.step == Step.LOADING) {
+                    _uiState.update {
+                        it.copy(
+                            step = Step.TRIM,
+                            loading = false,
+                            job = RingRJob(
+                                id = result.jobId,
+                                url = result.cleanUrl,
+                                name = result.meta.title,
+                                uploader = result.meta.uploader,
+                                thumbnailUrl = result.meta.thumbnailUrl,
+                                durationSeconds = result.meta.durationSeconds,
+                                sourceFile = result.sourceFile,
+                                waveformData = result.waveform.ifEmpty { null },
+                            ),
+                        )
+                    }
+                    currentJobId = null
+                    currentCleanUrl = null
+                    DownloadEventBus.clear()
+                }
+            }
+        }
+        viewModelScope.launch {
+            DownloadEventBus.error.collect { msg ->
+                if (msg != null && _uiState.value.step == Step.LOADING) {
+                    _uiState.update { it.copy(step = Step.LANDING, loading = false, error = msg) }
+                    currentJobId = null
+                    currentCleanUrl = null
+                    DownloadEventBus.clear()
+                }
+            }
+        }
+    }
 
     fun cancelLoading() {
-        fetchJob?.cancel()
-        fetchJob = null
-        currentJobId?.let { manager.cancel(it) }
+        getApplication<Application>().startService(
+            Intent(getApplication(), DownloadService::class.java).apply {
+                action = DownloadService.ACTION_CANCEL
+                putExtra(DownloadService.EXTRA_JOB_ID, currentJobId)
+            }
+        )
         currentJobId = null
+        currentCleanUrl = null
         _uiState.update { RingRUiState(step = Step.LANDING) }
+        DownloadEventBus.clear()
     }
 
     fun submitLink(url: String) {
@@ -75,44 +120,18 @@ class RingRViewModel(application: Application) : AndroidViewModel(application) {
 
         _uiState.update { it.copy(step = Step.LOADING, loading = true, error = null) }
 
-        fetchJob?.cancel()
-        fetchJob = viewModelScope.launch {
-            val jobId = UUID.randomUUID().toString().take(10)
-            currentJobId = jobId
-            try {
-                Log.d(TAG, "fetchInfo starting for $cleanUrl")
-                val meta: VideoMeta = manager.fetchInfo(cleanUrl)
-                Log.d(TAG, "fetchInfo OK — title=${meta.title}")
-                val sourceFile = manager.extractAudio(cleanUrl, jobId)
-                Log.d(TAG, "extractAudio OK — ${sourceFile.absolutePath} (${sourceFile.length()} bytes)")
-                val waveform = manager.extractWaveform(sourceFile)
+        val jobId = UUID.randomUUID().toString().take(10)
+        currentJobId = jobId
+        currentCleanUrl = cleanUrl
 
-                _uiState.update {
-                    it.copy(
-                        step = Step.TRIM,
-                        loading = false,
-                        job = RingRJob(
-                            id = jobId,
-                            url = cleanUrl,
-                            name = meta.title,
-                            uploader = meta.uploader,
-                            thumbnailUrl = meta.thumbnailUrl,
-                            durationSeconds = meta.durationSeconds,
-                            sourceFile = sourceFile,
-                            waveformData = waveform.ifEmpty { null },
-                        ),
-                    )
-                }
-            } catch (e: RingRExtractionException) {
-                Log.e(TAG, "Extraction failed: ${e.message}", e)
-                _uiState.update { it.copy(step = Step.LANDING, loading = false, error = e.message) }
-            } catch (e: Exception) {
-                Log.e(TAG, "Unexpected error", e)
-                _uiState.update { it.copy(step = Step.LANDING, loading = false, error = "Something went wrong. Try again.") }
+        getApplication<Application>().startService(
+            Intent(getApplication(), DownloadService::class.java).apply {
+                action = Intent.ACTION_DEFAULT
+                putExtra(DownloadService.EXTRA_URL, url)
+                putExtra(DownloadService.EXTRA_JOB_ID, jobId)
+                putExtra(DownloadService.EXTRA_CLEAN_URL, cleanUrl)
             }
-            currentJobId = null
-            fetchJob = null
-        }
+        )
     }
 
     fun proceedToFinalize(startSec: Double, endSec: Double) {
