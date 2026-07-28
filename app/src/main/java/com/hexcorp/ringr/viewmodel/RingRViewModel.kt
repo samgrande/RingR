@@ -7,6 +7,7 @@ import androidx.lifecycle.viewModelScope
 import com.hexcorp.ringr.ytdlp.RingRExtractionException
 import com.hexcorp.ringr.ytdlp.VideoMeta
 import com.hexcorp.ringr.ytdlp.YtDlpManager
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.update
@@ -45,8 +46,11 @@ class RingRViewModel(application: Application) : AndroidViewModel(application) {
     val uiState: StateFlow<RingRUiState> = _uiState
 
     private var currentJobId: String? = null
+    private var fetchJob: Job? = null
 
     fun cancelLoading() {
+        fetchJob?.cancel()
+        fetchJob = null
         currentJobId?.let { manager.cancel(it) }
         currentJobId = null
         _uiState.update { RingRUiState(step = Step.LANDING) }
@@ -57,6 +61,9 @@ class RingRViewModel(application: Application) : AndroidViewModel(application) {
             Log.w(TAG, "submitLink: blank URL")
             return
         }
+
+        manager.clearCache()
+
         val cleanUrl = sanitizeUrl(url.trim())
         Log.d(TAG, "submitLink: original=$url sanitized=$cleanUrl")
 
@@ -68,7 +75,8 @@ class RingRViewModel(application: Application) : AndroidViewModel(application) {
 
         _uiState.update { it.copy(step = Step.LOADING, loading = true, error = null) }
 
-        viewModelScope.launch {
+        fetchJob?.cancel()
+        fetchJob = viewModelScope.launch {
             val jobId = UUID.randomUUID().toString().take(10)
             currentJobId = jobId
             try {
@@ -103,6 +111,7 @@ class RingRViewModel(application: Application) : AndroidViewModel(application) {
                 _uiState.update { it.copy(step = Step.LANDING, loading = false, error = "Something went wrong. Try again.") }
             }
             currentJobId = null
+            fetchJob = null
         }
     }
 

@@ -289,6 +289,11 @@ class YtDlpManager(private val context: Context) {
         cleanup(jobId)
     }
 
+    fun clearCache() {
+        val dir = workDir
+        if (dir.exists()) dir.deleteRecursively()
+    }
+
     fun cleanup(jobId: String) {
         workDir.listFiles { f -> f.name.startsWith(jobId) }?.forEach { it.delete() }
     }
