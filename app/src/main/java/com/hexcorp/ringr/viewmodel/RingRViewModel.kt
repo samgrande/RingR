@@ -150,6 +150,10 @@ class RingRViewModel(application: Application) : AndroidViewModel(application) {
         _uiState.update { it.copy(job = job.copy(name = newName)) }
     }
 
+    fun clearError() {
+        _uiState.update { it.copy(error = null) }
+    }
+
     fun backToLanding() {
         _uiState.update { RingRUiState(step = Step.LANDING) }
     }
