@@ -3,7 +3,7 @@ name: Build Release
 on:
   push:
     tags:
-      - 'Ringr v*'
+      - 'v*'
 
 permissions:
   contents: write
@@ -32,7 +32,7 @@ jobs:
       - name: Compute version vars
         id: version
         run: |
-          TAG="${GITHUB_REF_NAME#Ringr v}"
+          TAG="${GITHUB_REF_NAME#v}"
           echo "version_name=${TAG}" >> $GITHUB_OUTPUT
           COMMIT_COUNT=$(git rev-list --count HEAD)
           echo "version_code=${COMMIT_COUNT}" >> $GITHUB_OUTPUT
@@ -54,6 +54,7 @@ jobs:
       - name: Create Release
         uses: softprops/action-gh-release@v2
         with:
+          name: RingR v${{ steps.version.outputs.version_name }}
           files: |
             Ringr-release.apk
             Ringr-debug.apk
