@@ -44,6 +44,14 @@ class RingRViewModel(application: Application) : AndroidViewModel(application) {
     private val _uiState = MutableStateFlow(RingRUiState())
     val uiState: StateFlow<RingRUiState> = _uiState
 
+    private var currentJobId: String? = null
+
+    fun cancelLoading() {
+        currentJobId?.let { manager.cancel(it) }
+        currentJobId = null
+        _uiState.update { RingRUiState(step = Step.LANDING) }
+    }
+
     fun submitLink(url: String) {
         if (url.isBlank()) {
             Log.w(TAG, "submitLink: blank URL")
@@ -62,6 +70,7 @@ class RingRViewModel(application: Application) : AndroidViewModel(application) {
 
         viewModelScope.launch {
             val jobId = UUID.randomUUID().toString().take(10)
+            currentJobId = jobId
             try {
                 Log.d(TAG, "fetchInfo starting for $cleanUrl")
                 val meta: VideoMeta = manager.fetchInfo(cleanUrl)
@@ -93,6 +102,7 @@ class RingRViewModel(application: Application) : AndroidViewModel(application) {
                 Log.e(TAG, "Unexpected error", e)
                 _uiState.update { it.copy(step = Step.LANDING, loading = false, error = "Something went wrong. Try again.") }
             }
+            currentJobId = null
         }
     }
 

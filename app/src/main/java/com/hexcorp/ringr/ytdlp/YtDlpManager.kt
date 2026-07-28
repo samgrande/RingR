@@ -282,6 +282,13 @@ class YtDlpManager(private val context: Context) {
         }
     }
 
+    fun cancel(jobId: String) {
+        try {
+            YoutubeDL.getInstance().destroyProcessById(jobId)
+        } catch (_: Exception) {}
+        cleanup(jobId)
+    }
+
     fun cleanup(jobId: String) {
         workDir.listFiles { f -> f.name.startsWith(jobId) }?.forEach { it.delete() }
     }
