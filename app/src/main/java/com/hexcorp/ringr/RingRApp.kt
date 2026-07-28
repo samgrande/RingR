@@ -22,8 +22,10 @@ class RingRApp : Application() {
 
         CoroutineScope(Dispatchers.IO).launch {
             try {
+                cleanupYtdlp()
                 extractStdlib()
                 YoutubeDL.getInstance().init(this@RingRApp)
+                disableFfmpeg()
                 isReady = true
                 Log.i(TAG, "yt-dlp initialized")
 
@@ -38,6 +40,29 @@ class RingRApp : Application() {
 
             } catch (e: YoutubeDLException) {
                 Log.e(TAG, "Failed to initialize yt-dlp", e)
+            }
+        }
+    }
+
+    private fun disableFfmpeg() {
+        try {
+            val field = com.yausername.youtubedl_android.YoutubeDL::class.java
+                .getDeclaredField("ffmpegPath")
+            field.isAccessible = true
+            field.set(null, File("/system/bin"))
+            Log.i(TAG, "ffmpeg redirected to /system/bin")
+        } catch (e: Exception) {
+            Log.w(TAG, "Failed to disable ffmpeg: ${e.message}")
+        }
+    }
+
+    private fun cleanupYtdlp() {
+        val ytdlpDir = File(noBackupFilesDir, "youtubedl-android/yt-dlp")
+        if (ytdlpDir.exists()) {
+            val testFile = File(ytdlpDir, "yt-dlp")
+            if (testFile.isDirectory) {
+                Log.w(TAG, "Corrupted yt-dlp detected, clearing entire youtubedl-android")
+                File(noBackupFilesDir, "youtubedl-android").deleteRecursively()
             }
         }
     }

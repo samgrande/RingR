@@ -92,7 +92,9 @@ dependencies {
     implementation(libs.lottie.compose)
 
     // yt-dlp bundled for Android (Maven Central — io.github.junkfood02.youtubedl-android 0.18.1)
-    implementation(libs.youtubedl.android)
+    implementation(libs.youtubedl.android) {
+        exclude(group = "io.github.junkfood02.youtubedl-android", module = "youtubedl-android-ffmpeg")
+    }
     implementation(libs.youtubedl.android.common)
 
     implementation(libs.kotlinx.coroutines.android)
