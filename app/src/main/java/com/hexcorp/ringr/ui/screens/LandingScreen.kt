@@ -23,6 +23,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.airbnb.lottie.compose.LottieAnimation
+import com.airbnb.lottie.compose.LottieCompositionSpec
+import com.airbnb.lottie.compose.rememberLottieComposition
 import com.hexcorp.ringr.ui.theme.*
 
 @Composable
@@ -34,24 +37,35 @@ fun LandingScreen(
     var url by remember { mutableStateOf("") }
     val context = LocalContext.current
 
-    Box(
+    BoxWithConstraints(
         modifier = Modifier
             .fillMaxSize()
             .padding(horizontal = 24.dp),
     ) {
+        val offsetY = -(maxHeight * 0.15f)
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .align(Alignment.Center),
+                .align(Alignment.Center)
+                .offset(y = offsetY),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
+            val composition by rememberLottieComposition(LottieCompositionSpec.RawRes(com.hexcorp.ringr.R.raw.youman))
+            LottieAnimation(
+                composition = composition,
+                isPlaying = composition != null,
+                iterations = Int.MAX_VALUE,
+                speed = 3f,
+                modifier = Modifier.size(200.dp),
+            )
+            Spacer(Modifier.height(12.dp))
             Image(
                 painter = painterResource(id = com.hexcorp.ringr.R.drawable.ic_ringr_logo),
                 contentDescription = "Ring-R",
                 modifier = Modifier.size(width = 400.dp, height = 78.dp),
                 colorFilter = ColorFilter.tint(MaterialTheme.colorScheme.onBackground),
             )
-            Spacer(Modifier.height(28.dp))
+            Spacer(Modifier.height(24.dp))
             Text(
                 text = "Convert YouTube links into ringtone",
                 fontSize = 13.sp,

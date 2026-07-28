@@ -130,8 +130,8 @@ fun RingRApp(viewModel: RingRViewModel) {
         ) {
             Surface(
                 shape = RoundedCornerShape(50),
-                border = BorderStroke(1.dp, MaterialTheme.colorScheme.error),
-                color = MaterialTheme.colorScheme.surfaceVariant,
+                border = BorderStroke(1.dp, Color(0xFFFF1D4A)),
+                color = Color(0xFF1A1A1A),
             ) {
                 Text(
                     text = pillMessage ?: "",
