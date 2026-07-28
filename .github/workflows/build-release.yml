@@ -3,7 +3,7 @@ name: Build Release
 on:
   push:
     tags:
-      - 'v*'
+      - 'Ringr-v*'
 
 jobs:
   build:
@@ -24,7 +24,7 @@ jobs:
       - name: Compute version vars
         id: version
         run: |
-          TAG="${GITHUB_REF_NAME#v}"
+          TAG="${GITHUB_REF_NAME#Ringr-v}"
           echo "version_name=${TAG}" >> $GITHUB_OUTPUT
           COMMIT_COUNT=$(git rev-list --count HEAD)
           echo "version_code=${COMMIT_COUNT}" >> $GITHUB_OUTPUT
@@ -38,8 +38,13 @@ jobs:
           TAG_VERSION: ${{ steps.version.outputs.version_name }}
           TAG_VERSION_CODE: ${{ steps.version.outputs.version_code }}
 
+      - name: Rename APK
+        run: |
+          cp app/build/outputs/apk/release/app-release.apk \
+             app/build/outputs/apk/release/RingR-${{ steps.version.outputs.version_name }}.apk
+
       - name: Create Release
         uses: softprops/action-gh-release@v2
         with:
-          files: app/build/outputs/apk/release/app-release.apk
+          files: app/build/outputs/apk/release/RingR-${{ steps.version.outputs.version_name }}.apk
           generate_release_notes: true
