@@ -1,5 +1,7 @@
 package com.hexcorp.ringr.ui.screens
 
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -60,7 +62,6 @@ fun EditableTitle(value: String, onChange: (String) -> Unit) {
         LaunchedEffect(Unit) { scope.launch { focusRequester.requestFocus() } }
     } else {
         var containerWidth by remember { mutableIntStateOf(0) }
-        var offsetX by remember { mutableFloatStateOf(0f) }
         val textMeasurer = rememberTextMeasurer()
         val textStyle = MaterialTheme.typography.titleMedium
         val textWidth = remember(value) {
@@ -70,6 +71,28 @@ fun EditableTitle(value: String, onChange: (String) -> Unit) {
                 constraints = Constraints(maxWidth = Int.MAX_VALUE),
                 maxLines = 1,
             ).size.width
+        }
+
+        val scroll = remember { Animatable(0f) }
+
+        LaunchedEffect(value, textWidth, containerWidth) {
+            scroll.snapTo(0f)
+            if (textWidth > containerWidth && containerWidth > 0) {
+                val distance = (textWidth - containerWidth).toFloat()
+                val duration = 3600
+                while (true) {
+                    delay(1500)
+                    scroll.animateTo(
+                        targetValue = -distance,
+                        animationSpec = tween(durationMillis = duration, easing = LinearEasing),
+                    )
+                    delay(2000)
+                    scroll.animateTo(
+                        targetValue = 0f,
+                        animationSpec = tween(durationMillis = duration, easing = LinearEasing),
+                    )
+                }
+            }
         }
 
         Box(
@@ -85,32 +108,11 @@ fun EditableTitle(value: String, onChange: (String) -> Unit) {
                 softWrap = false,
                 modifier = Modifier
                     .then(if (textWidth <= containerWidth) Modifier.fillMaxWidth() else Modifier)
-                    .then(if (textWidth > containerWidth) Modifier.offset { IntOffset(offsetX.toInt(), 0) } else Modifier)
+                    .then(if (textWidth > containerWidth) Modifier.offset { IntOffset(scroll.value.toInt(), 0) } else Modifier)
                     .pointerInput(Unit) {
                         detectTapGestures(onTap = { editing = true })
                     },
             )
-        }
-
-        LaunchedEffect(value, textWidth, containerWidth) {
-            offsetX = 0f
-            if (textWidth > containerWidth && containerWidth > 0) {
-                val distance = (textWidth - containerWidth).toFloat()
-                val stepDelay = 20L
-                val steps = 60
-                while (true) {
-                    delay(1500)
-                    for (i in 1..steps) {
-                        offsetX = -(distance * i / steps)
-                        delay(stepDelay)
-                    }
-                    delay(2000)
-                    for (i in steps downTo 1) {
-                        offsetX = -(distance * i / steps)
-                        delay(stepDelay)
-                    }
-                }
-            }
         }
     }
 }

@@ -5,8 +5,11 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.animateIntOffsetAsState
 import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
@@ -523,7 +526,6 @@ private fun MinimalWaveform(
 @Composable
 private fun MarqueeText(text: String, modifier: Modifier = Modifier) {
     var containerWidth by remember { mutableIntStateOf(0) }
-    var offsetX by remember { mutableFloatStateOf(0f) }
     val textMeasurer = rememberTextMeasurer()
     val textStyle = MaterialTheme.typography.titleMedium
     val textWidth = remember(text) {
@@ -533,6 +535,28 @@ private fun MarqueeText(text: String, modifier: Modifier = Modifier) {
             constraints = Constraints(maxWidth = Int.MAX_VALUE),
             maxLines = 1,
         ).size.width
+    }
+
+    val scroll = remember { Animatable(0f) }
+
+    LaunchedEffect(text, textWidth, containerWidth) {
+        scroll.snapTo(0f)
+        if (textWidth > containerWidth && containerWidth > 0) {
+            val distance = (textWidth - containerWidth).toFloat()
+            val duration = 3600
+            while (true) {
+                delay(1500)
+                scroll.animateTo(
+                    targetValue = -distance,
+                    animationSpec = tween(durationMillis = duration, easing = LinearEasing),
+                )
+                delay(2000)
+                scroll.animateTo(
+                    targetValue = 0f,
+                    animationSpec = tween(durationMillis = duration, easing = LinearEasing),
+                )
+            }
+        }
     }
 
     Box(
@@ -548,29 +572,8 @@ private fun MarqueeText(text: String, modifier: Modifier = Modifier) {
             softWrap = false,
             modifier = Modifier
                 .then(if (textWidth <= containerWidth) Modifier.fillMaxWidth() else Modifier)
-                .then(if (textWidth > containerWidth) Modifier.offset { IntOffset(offsetX.toInt(), 0) } else Modifier),
+                .then(if (textWidth > containerWidth) Modifier.offset { IntOffset(scroll.value.toInt(), 0) } else Modifier),
         )
-    }
-
-    LaunchedEffect(text, textWidth, containerWidth) {
-        offsetX = 0f
-        if (textWidth > containerWidth && containerWidth > 0) {
-            val distance = (textWidth - containerWidth).toFloat()
-            val stepDelay = 35L
-            val steps = 60
-            while (true) {
-                delay(1500)
-                for (i in 1..steps) {
-                    offsetX = -(distance * i / steps)
-                    delay(stepDelay)
-                }
-                delay(2000)
-                for (i in steps downTo 1) {
-                    offsetX = -(distance * i / steps)
-                    delay(stepDelay)
-                }
-            }
-        }
     }
 }
 

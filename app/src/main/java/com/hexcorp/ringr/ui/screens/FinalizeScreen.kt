@@ -96,36 +96,29 @@ fun FinalizeScreen(
 
                     Spacer(Modifier.height(24.dp))
 
-                    Card(
-                        shape = RoundedCornerShape(24.dp),
-                        colors = CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.surfaceContainerHighest,
-                        ),
+                    Column(
+                        modifier = Modifier.padding(16.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
                     ) {
-                        Column(
-                            modifier = Modifier.padding(16.dp),
-                            horizontalAlignment = Alignment.CenterHorizontally,
+                        Box(
+                            modifier = Modifier
+                                .size(160.dp)
+                                .clip(RoundedCornerShape(20.dp))
+                                .background(MaterialTheme.colorScheme.surfaceContainerHigh),
                         ) {
-                            Box(
-                                modifier = Modifier
-                                    .size(160.dp)
-                                    .clip(RoundedCornerShape(20.dp))
-                                    .background(MaterialTheme.colorScheme.surfaceContainerHigh),
-                            ) {
-                                job.thumbnailUrl?.let {
-                                    AsyncImage(
-                                        model = it,
-                                        contentDescription = null,
-                                        contentScale = ContentScale.Crop,
-                                        modifier = Modifier.fillMaxSize(),
-                                    )
-                                }
+                            job.thumbnailUrl?.let {
+                                AsyncImage(
+                                    model = it,
+                                    contentDescription = null,
+                                    contentScale = ContentScale.Crop,
+                                    modifier = Modifier.fillMaxSize(),
+                                )
                             }
-                            Spacer(Modifier.height(12.dp))
-                            EditableTitle(value = job.name, onChange = onRename)
-                            Spacer(Modifier.height(4.dp))
-                            Text(job.uploader, color = MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.Medium)
                         }
+                        Spacer(Modifier.height(12.dp))
+                        EditableTitle(value = job.name, onChange = onRename)
+                        Spacer(Modifier.height(4.dp))
+                        Text(job.uploader, color = MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.Medium)
                     }
 
                     Spacer(Modifier.height(16.dp))
