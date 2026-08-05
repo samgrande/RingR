@@ -237,7 +237,7 @@ fun FinalizeScreen(
             FilledTonalButton(
                 onClick = onMakeAnother,
                 shape = RoundedCornerShape(28.dp),
-                modifier = Modifier.fillMaxWidth().height(48.dp),
+                modifier = Modifier.width(220.dp).height(48.dp),
             ) { Text("CREATE NEW", fontWeight = FontWeight.Bold) }
         }
     }

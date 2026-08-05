@@ -230,7 +230,7 @@ fun TrimScreen(
                             .width(with(density) { thumbWidthPx.toDp() })
                             .fillMaxHeight()
                             .clip(RoundedCornerShape(22.dp))
-                            .background(MaterialTheme.colorScheme.primaryContainer),
+                            .background(MaterialTheme.colorScheme.primary),
                     )
 
                     Row(modifier = Modifier.fillMaxSize()) {
@@ -255,7 +255,7 @@ fun TrimScreen(
                                     "${p}s",
                                     fontWeight = FontWeight.Bold,
                                     color = if (index == selectedIndex)
-                                        MaterialTheme.colorScheme.onPrimaryContainer
+                                        MaterialTheme.colorScheme.onPrimary
                                     else
                                         MaterialTheme.colorScheme.onSurface,
                                 )
@@ -556,7 +556,7 @@ private fun MarqueeText(text: String, modifier: Modifier = Modifier) {
         offsetX = 0f
         if (textWidth > containerWidth && containerWidth > 0) {
             val distance = (textWidth - containerWidth).toFloat()
-            val stepDelay = 20L
+            val stepDelay = 35L
             val steps = 60
             while (true) {
                 delay(1500)

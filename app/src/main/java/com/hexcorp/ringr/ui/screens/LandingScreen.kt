@@ -42,7 +42,8 @@ fun LandingScreen(
             .fillMaxSize()
             .padding(horizontal = 24.dp),
     ) {
-        val offsetY = -(maxHeight * 0.15f)
+        val offsetY = -maxHeight * 0.15f
+        val lottieOffset = maxHeight * 0.1f
         Column(
             modifier = Modifier
                 .fillMaxWidth()
@@ -56,13 +57,15 @@ fun LandingScreen(
                 isPlaying = composition != null,
                 iterations = Int.MAX_VALUE,
                 speed = 3f,
-                modifier = Modifier.size(200.dp),
+                modifier = Modifier
+                    .size(300.dp)
+                    .offset(y = lottieOffset),
             )
             Spacer(Modifier.height(12.dp))
             Image(
                 painter = painterResource(id = com.hexcorp.ringr.R.drawable.ic_ringr_logo),
                 contentDescription = "Ring-R",
-                modifier = Modifier.size(width = 400.dp, height = 78.dp),
+                modifier = Modifier.size(width = 380.dp, height = 74.dp),
                 colorFilter = ColorFilter.tint(MaterialTheme.colorScheme.onBackground),
             )
             Spacer(Modifier.height(24.dp))
@@ -110,7 +113,7 @@ fun LandingScreen(
                 }
             }
 
-            Spacer(Modifier.height(20.dp))
+            Spacer(Modifier.height(28.dp))
 
             Button(
                 onClick = { onSubmit(url.trim()) },
