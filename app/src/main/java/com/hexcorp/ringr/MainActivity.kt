@@ -66,6 +66,7 @@ import com.airbnb.lottie.compose.rememberLottieComposition
 import com.airbnb.lottie.compose.rememberLottieDynamicProperties
 import com.airbnb.lottie.compose.rememberLottieDynamicProperty
 import com.hexcorp.ringr.ui.components.BackgroundShapes
+import com.hexcorp.ringr.ui.screens.DoneScreen
 import com.hexcorp.ringr.ui.screens.FinalizeScreen
 import com.hexcorp.ringr.ui.screens.LandingScreen
 import com.hexcorp.ringr.ui.screens.TrimScreen
@@ -187,7 +188,9 @@ fun RingRApp(viewModel: RingRViewModel) {
                 AnimatedContent(
                     targetState = uiState.step,
                     transitionSpec = {
-                        if (targetState == Step.LOADING || initialState == Step.LOADING) {
+                        if (targetState == Step.LOADING || initialState == Step.LOADING ||
+                            targetState == Step.DONE || initialState == Step.DONE
+                        ) {
                             scaleIn(spring(stiffness = Spring.StiffnessLow), initialScale = 0f) +
                                 fadeIn(spring(stiffness = Spring.StiffnessLow)) togetherWith
                             scaleOut(spring(stiffness = Spring.StiffnessLow), targetScale = 0f) +
@@ -315,9 +318,13 @@ fun RingRApp(viewModel: RingRViewModel) {
                             job = job,
                             onRename = viewModel::rename,
                             onBack = viewModel::backToLanding,
-                            onMakeAnother = viewModel::makeAnother,
+                            onRingtoneSet = viewModel::ringtoneSet,
                         )
                     }
+
+                    Step.DONE -> DoneScreen(
+                        onMakeAnother = viewModel::makeAnother,
+                    )
                 }
             }
         }

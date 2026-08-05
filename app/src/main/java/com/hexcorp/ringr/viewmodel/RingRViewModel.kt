@@ -18,7 +18,7 @@ import java.io.File
 import java.net.URI
 import java.util.UUID
 
-enum class Step { LANDING, LOADING, TRIM, FINALIZE }
+enum class Step { LANDING, LOADING, TRIM, FINALIZE, DONE }
 
 data class RingRJob(
     val id: String,
@@ -184,6 +184,10 @@ class RingRViewModel(application: Application) : AndroidViewModel(application) {
     fun makeAnother() {
         _uiState.value.job?.let { manager.cleanup(it.id) }
         _uiState.update { RingRUiState(step = Step.LANDING) }
+    }
+
+    fun ringtoneSet() {
+        _uiState.update { it.copy(step = Step.DONE, loading = false) }
     }
 
     companion object {
