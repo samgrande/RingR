@@ -1,6 +1,9 @@
 package com.hexcorp.ringr.ui.screens
 
-import android.media.MediaPlayer
+import android.media.AudioFormat
+import android.media.AudioTrack
+import android.media.MediaExtractor
+import android.media.MediaFormat
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.lifecycle.Lifecycle
@@ -55,9 +58,12 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.hexcorp.ringr.viewmodel.RingRJob
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.withContext
 import kotlin.math.abs
 import java.io.File
+import java.io.RandomAccessFile
 
 private val PRESETS = listOf(30, 60, 90)
 
@@ -70,47 +76,57 @@ fun TrimScreen(
     onBack: () -> Unit,
     onProceed: (startSec: Double, endSec: Double) -> Unit,
 ) {
-    val totalDuration = (job.durationSeconds ?: 300).toFloat().coerceAtLeast(30f)
+    val pcmFile = job.pcmFile
+    val pcmData = job.pcmData
+    val totalDuration = remember(pcmFile, pcmData) {
+        pcmData?.let { it.totalFrames / it.sampleRate.toFloat() }
+            ?: readAudioDurationSeconds(job.sourceFile)
+            ?: (job.durationSeconds ?: 300).toFloat()
+    }.coerceAtLeast(1f)
 
     var cropDuration by remember(job.id) { mutableFloatStateOf(minOf(30f, totalDuration)) }
     var cropStart by remember(job.id) { mutableFloatStateOf(0f) }
 
-    val mediaPlayer = remember { MediaPlayer() }
     var muted by remember { mutableStateOf(false) }
 
     val cropStartRef = rememberUpdatedState(cropStart)
     val cropDurationRef = rememberUpdatedState(cropDuration)
+    val mutedRef = rememberUpdatedState(muted)
     var playheadPosition by remember { mutableFloatStateOf(0f) }
-    var playerReady by remember { mutableStateOf(false) }
 
     val lifecycleOwner = LocalLifecycleOwner.current
 
-    fun preparePlayer(file: File, startMs: Int) {
-        playerReady = false
-        mediaPlayer.apply {
-            reset()
-            setDataSource(file.absolutePath)
-            setOnPreparedListener {
-                seekTo(startMs)
-                if (lifecycleOwner.lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED)) {
-                    start()
-                }
-                playerReady = true
-            }
-            prepareAsync()
-        }
+    val audioTrack = remember(pcmData) {
+        val sampleRate = pcmData?.sampleRate ?: 44100
+        val minBuf = AudioTrack.getMinBufferSize(
+            sampleRate, AudioFormat.CHANNEL_OUT_MONO, AudioFormat.ENCODING_PCM_16BIT
+        )
+        AudioTrack.Builder()
+            .setAudioFormat(
+                AudioFormat.Builder()
+                    .setEncoding(AudioFormat.ENCODING_PCM_16BIT)
+                    .setSampleRate(sampleRate)
+                    .setChannelMask(AudioFormat.CHANNEL_OUT_MONO)
+                    .build()
+            )
+            .setTransferMode(AudioTrack.MODE_STREAM)
+            .setBufferSizeInBytes(minBuf.coerceAtLeast(16384))
+            .build()
     }
+
+    val playbackActive = remember { mutableStateOf(true) }
+
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
             when (event) {
                 Lifecycle.Event.ON_PAUSE -> {
-                    if (mediaPlayer.isPlaying) mediaPlayer.pause()
+                    playbackActive.value = false
+                    audioTrack.pause()
                 }
                 Lifecycle.Event.ON_RESUME -> {
-                    if (!playerReady && job.sourceFile != null) {
-                        preparePlayer(job.sourceFile, (cropStart * 1000).toInt())
-                    } else if (playerReady && !mediaPlayer.isPlaying) {
-                        mediaPlayer.start()
+                    if (pcmFile != null) {
+                        playbackActive.value = true
+                        audioTrack.play()
                     }
                 }
                 else -> {}
@@ -122,31 +138,77 @@ fun TrimScreen(
         }
     }
 
-    LaunchedEffect(job.sourceFile) {
-        val file = job.sourceFile ?: return@LaunchedEffect
-        preparePlayer(file, (cropStart * 1000).toInt())
-    }
-
-    LaunchedEffect(cropStart, cropDuration) {
-        if (!playerReady) return@LaunchedEffect
-        delay(300)
-        val startMs = (cropStart * 1000).toInt()
-        preparePlayer(job.sourceFile ?: return@LaunchedEffect, startMs)
-    }
-
-    LaunchedEffect(Unit) {
-        while (true) {
-            delay(200)
+    LaunchedEffect(pcmFile, pcmData) {
+        if (pcmFile == null || pcmData == null) return@LaunchedEffect
+        withContext(Dispatchers.IO) {
+            val raf = RandomAccessFile(pcmFile, "r")
+            val buf = ByteArray(8192)
+            val bytesPerSec = pcmData.sampleRate * 2L
+            var lastStart = -1L
+            var lastEnd = -1L
+            var lastVolume = -1f
             try {
-                playheadPosition = mediaPlayer.currentPosition / 1000f
-            } catch (_: Exception) {}
+                while (true) {
+                    val start = (cropStartRef.value * pcmData.sampleRate).toLong() * 2L
+                    val end = ((cropStartRef.value + cropDurationRef.value) * pcmData.sampleRate).toLong() * 2L
+                    if (start != lastStart || end != lastEnd) {
+                        lastStart = start
+                        lastEnd = end
+                        audioTrack.pause()
+                        audioTrack.flush()
+                        audioTrack.play()
+                    }
+
+                    val volume = if (mutedRef.value) 0f else 1f
+                    if (volume != lastVolume) {
+                        lastVolume = volume
+                        audioTrack.setVolume(volume)
+                    }
+
+                    if (!playbackActive.value) {
+                        delay(200)
+                        continue
+                    }
+
+                    var pos = lastStart
+                    var readSomething = false
+                    while (pos < lastEnd) {
+                        val curStart = (cropStartRef.value * pcmData.sampleRate).toLong() * 2L
+                        val curEnd = ((cropStartRef.value + cropDurationRef.value) * pcmData.sampleRate).toLong() * 2L
+                        if (curStart != lastStart || curEnd != lastEnd) break
+                        raf.seek(pos)
+                        val toRead = minOf(buf.size.toLong(), lastEnd - pos).toInt()
+                        val n = raf.read(buf, 0, toRead)
+                        if (n <= 0) break
+                        readSomething = true
+                        var w = 0
+                        while (w < n) {
+                            val written = try {
+                                audioTrack.write(buf, w, n - w, AudioTrack.WRITE_BLOCKING)
+                            } catch (_: IllegalStateException) {
+                                -1
+                            }
+                            if (written <= 0) break
+                            w += written
+                        }
+                        pos += n
+                        playheadPosition = pos / bytesPerSec.toFloat()
+                        if (!playbackActive.value) break
+                    }
+                    if (!readSomething) {
+                        delay(100)
+                        continue
+                    }
+                }
+            } finally {
+                raf.close()
+            }
         }
     }
 
     var showMuteFeedback by remember { mutableStateOf(false) }
 
     LaunchedEffect(muted) {
-        mediaPlayer.setVolume(if (muted) 0f else 1f, if (muted) 0f else 1f)
         showMuteFeedback = true
         delay(800)
         showMuteFeedback = false
@@ -154,7 +216,10 @@ fun TrimScreen(
 
     DisposableEffect(Unit) {
         onDispose {
-            mediaPlayer.release()
+            playbackActive.value = false
+            audioTrack.pause()
+            audioTrack.flush()
+            audioTrack.release()
         }
     }
 
@@ -219,6 +284,9 @@ fun TrimScreen(
                                 val pos = change.position.x.coerceIn(0f, trackWidth.toFloat())
                                 val idx = (pos / trackWidth * PRESETS.size).toInt().coerceIn(0, PRESETS.size - 1)
                                 cropDuration = minOf(PRESETS[idx].toFloat(), totalDuration)
+                                if (cropStart + cropDuration > totalDuration) {
+                                    cropStart = totalDuration - cropDuration
+                                }
                             }
                         },
                 ) {
@@ -364,7 +432,7 @@ fun TrimScreen(
                         onClick = {
                             onProceed(
                                 cropStart.toDouble(),
-                                (cropStart + cropDuration).toDouble(),
+                                minOf(cropStart + cropDuration, totalDuration).toDouble(),
                             )
                         },
                         modifier = Modifier
@@ -584,4 +652,24 @@ private fun MarqueeText(text: String, modifier: Modifier = Modifier) {
 private fun formatTime(seconds: Float): String {
     val total = seconds.toInt().coerceAtLeast(0)
     return "%d:%02d".format(total / 60, total % 60)
+}
+
+private fun readAudioDurationSeconds(file: File?): Float? {
+    if (file == null || !file.exists()) return null
+    val extractor = MediaExtractor()
+    return try {
+        extractor.setDataSource(file.absolutePath)
+        for (i in 0 until extractor.trackCount) {
+            val fmt = extractor.getTrackFormat(i)
+            if (fmt.getString(MediaFormat.KEY_MIME)?.startsWith("audio/") == true) {
+                val us = fmt.getLong(MediaFormat.KEY_DURATION, 0L)
+                return if (us > 0L) us / 1_000_000f else null
+            }
+        }
+        null
+    } catch (_: Exception) {
+        null
+    } finally {
+        extractor.release()
+    }
 }

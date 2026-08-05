@@ -10,6 +10,7 @@ import com.hexcorp.ringr.MainActivity
 import com.hexcorp.ringr.R
 import com.hexcorp.ringr.RingRApp
 import com.hexcorp.ringr.ytdlp.RingRExtractionException
+import com.hexcorp.ringr.ytdlp.PcmData
 import com.hexcorp.ringr.ytdlp.VideoMeta
 import com.hexcorp.ringr.ytdlp.YtDlpManager
 import kotlinx.coroutines.CoroutineScope
@@ -29,6 +30,8 @@ data class DownloadResult(
     val cleanUrl: String,
     val meta: VideoMeta,
     val sourceFile: File,
+    val pcmFile: File?,
+    val pcmData: PcmData?,
     val waveform: List<Float>,
 )
 
@@ -87,11 +90,14 @@ class DownloadService : Service() {
                 if (!isActive || cancelled) return@launch
                 val sourceFile = manager.extractAudio(url, jobId)
                 if (!isActive || cancelled) return@launch
-                val waveform = manager.extractWaveform(sourceFile)
+                val pcmFile = manager.pcmFile(jobId)
+                val pcmData = manager.extractPcm(sourceFile, pcmFile)
+                if (!isActive || cancelled) return@launch
+                val waveform = manager.extractWaveform(pcmFile, pcmData)
 
                 if (cancelled) return@launch
 
-                DownloadEventBus.post(DownloadResult(jobId, cleanUrl, meta, sourceFile, waveform))
+                DownloadEventBus.post(DownloadResult(jobId, cleanUrl, meta, sourceFile, pcmFile, pcmData, waveform))
 
                 if (!RingRApp.isForeground) {
                     showReadyNotification(meta.title)

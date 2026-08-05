@@ -7,6 +7,7 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.hexcorp.ringr.service.DownloadEventBus
 import com.hexcorp.ringr.service.DownloadService
+import com.hexcorp.ringr.ytdlp.PcmData
 import com.hexcorp.ringr.ytdlp.RingRExtractionException
 import com.hexcorp.ringr.ytdlp.YtDlpManager
 import kotlinx.coroutines.Job
@@ -28,6 +29,8 @@ data class RingRJob(
     val thumbnailUrl: String?,
     val durationSeconds: Int?,
     val sourceFile: File? = null,
+    val pcmFile: File? = null,
+    val pcmData: PcmData? = null,
     val ringtoneFile: File? = null,
     val ringtoneDurationSeconds: Float? = null,
     val waveformData: List<Float>? = null,
@@ -66,6 +69,8 @@ class RingRViewModel(application: Application) : AndroidViewModel(application) {
                                 thumbnailUrl = result.meta.thumbnailUrl,
                                 durationSeconds = result.meta.durationSeconds,
                                 sourceFile = result.sourceFile,
+                                pcmFile = result.pcmFile,
+                                pcmData = result.pcmData,
                                 waveformData = result.waveform.ifEmpty { null },
                             ),
                         )
@@ -145,9 +150,11 @@ class RingRViewModel(application: Application) : AndroidViewModel(application) {
                     jobId = job.id,
                     startSec = startSec,
                     durationSec = endSec - startSec,
-                    sourceFile = job.sourceFile,
+                    pcmFile = job.pcmFile,
+                    pcmData = job.pcmData,
                 )
                 job.sourceFile?.delete()
+                job.pcmFile?.delete()
                 val ringtoneDuration = (endSec - startSec).toFloat()
                 _uiState.update {
                     it.copy(
