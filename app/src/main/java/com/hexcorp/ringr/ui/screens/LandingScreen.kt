@@ -6,8 +6,10 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
@@ -48,7 +50,9 @@ fun LandingScreen(
             modifier = Modifier
                 .fillMaxWidth()
                 .align(Alignment.Center)
-                .offset(y = offsetY),
+                .offset(y = offsetY)
+                .verticalScroll(rememberScrollState())
+                .imePadding(),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             val composition by rememberLottieComposition(LottieCompositionSpec.RawRes(com.hexcorp.ringr.R.raw.youman))
@@ -61,7 +65,7 @@ fun LandingScreen(
                     .size(300.dp)
                     .offset(y = lottieOffset),
             )
-            Spacer(Modifier.height(12.dp))
+            Spacer(Modifier.height(16.dp))
             Image(
                 painter = painterResource(id = com.hexcorp.ringr.R.drawable.ic_ringr_logo),
                 contentDescription = "Ring-R",
@@ -71,7 +75,7 @@ fun LandingScreen(
             Spacer(Modifier.height(24.dp))
             Text(
                 text = "Convert YouTube links into ringtone",
-                fontSize = 13.sp,
+                fontSize = 14.sp,
                 color = MaterialTheme.colorScheme.onBackground,
             )
 
@@ -113,7 +117,7 @@ fun LandingScreen(
                 }
             }
 
-            Spacer(Modifier.height(28.dp))
+            Spacer(Modifier.height(24.dp))
 
             Button(
                 onClick = { onSubmit(url.trim()) },
@@ -137,7 +141,8 @@ fun LandingScreen(
             text = "made by @HeX",
             modifier = Modifier
                 .align(Alignment.BottomCenter)
-                .padding(bottom = 24.dp),
+                .navigationBarsPadding()
+                .padding(bottom = 16.dp),
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             fontSize = 12.sp,
         )

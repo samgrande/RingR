@@ -89,9 +89,10 @@ fun DoneScreen(
             shape = RoundedCornerShape(28.dp),
             modifier = Modifier
                 .align(Alignment.BottomCenter)
-                .padding(bottom = 48.dp)
+                .navigationBarsPadding()
+                .padding(bottom = 24.dp)
                 .width(220.dp)
-                .height(48.dp),
+                .height(52.dp),
         ) {
             Text("CREATE NEW", fontWeight = FontWeight.Bold, fontSize = 14.sp)
         }

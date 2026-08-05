@@ -16,6 +16,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.core.content.ContextCompat
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.Crossfade
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.fadeIn
@@ -150,7 +151,7 @@ fun RingRApp(viewModel: RingRViewModel) {
             Surface(
                 shape = RoundedCornerShape(50),
                 border = BorderStroke(1.dp, Color(0xFFFF1D4A)),
-                color = Color(0xFF1A1A1A),
+                color = MaterialTheme.colorScheme.surfaceContainerHigh,
             ) {
                 Text(
                     text = pillMessage ?: "",
@@ -166,7 +167,7 @@ fun RingRApp(viewModel: RingRViewModel) {
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(top = 64.dp, bottom = 12.dp),
+                        .padding(top = 56.dp, bottom = 12.dp),
                     horizontalAlignment = Alignment.CenterHorizontally,
                 ) {
                     Image(
@@ -275,11 +276,13 @@ fun RingRApp(viewModel: RingRViewModel) {
                                     )
                                 }
                                 Spacer(Modifier.height(40.dp))
-                                Text(
-                                    text = messages[messageIndex],
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                )
+                                Crossfade(targetState = messageIndex, label = "loadingMessage") {
+                                    Text(
+                                        text = messages[it],
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    )
+                                }
                             }
 
                             if (uiState.job?.sourceFile == null) {
@@ -292,9 +295,10 @@ fun RingRApp(viewModel: RingRViewModel) {
                                     shape = RoundedCornerShape(50),
                                     modifier = Modifier
                                         .align(Alignment.BottomCenter)
-                                        .padding(bottom = 48.dp)
+                                        .navigationBarsPadding()
+                                        .padding(bottom = 24.dp)
                                         .width(160.dp)
-                                        .height(44.dp),
+                                        .height(48.dp),
                                 ) {
                                     Text("CANCEL", fontWeight = FontWeight.Bold)
                                 }

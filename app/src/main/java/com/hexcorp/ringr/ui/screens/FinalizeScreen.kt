@@ -18,8 +18,10 @@ import androidx.compose.animation.core.spring
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.MusicNote
@@ -59,23 +61,21 @@ fun FinalizeScreen(
     var isSaving by remember { mutableStateOf(false) }
     var saved by remember { mutableStateOf(false) }
 
-    Box(
-        modifier = Modifier.fillMaxSize(),
-        contentAlignment = Alignment.Center,
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+            .padding(horizontal = 16.dp),
+        verticalArrangement = Arrangement.Center,
+        horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        Column(
-            modifier = Modifier
-                .wrapContentSize()
-                .padding(horizontal = 16.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-        ) {
-            Card(
-                modifier = Modifier.wrapContentWidth().wrapContentHeight(),
-                shape = RoundedCornerShape(32.dp),
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
-                ),
-                ) {
+        Card(
+            modifier = Modifier.wrapContentWidth().wrapContentHeight(),
+            shape = RoundedCornerShape(32.dp),
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+            ),
+            ) {
                     Column(
                         modifier = Modifier.padding(24.dp),
                         horizontalAlignment = Alignment.CenterHorizontally,
@@ -117,8 +117,8 @@ fun FinalizeScreen(
                     ) {
                         Box(
                             modifier = Modifier
-                                .size(160.dp)
-                                .clip(RoundedCornerShape(20.dp))
+                                .size(168.dp)
+                                .clip(RoundedCornerShape(24.dp))
                                 .background(MaterialTheme.colorScheme.surfaceContainerHigh),
                         ) {
                             job.thumbnailUrl?.let {
@@ -130,7 +130,7 @@ fun FinalizeScreen(
                                 )
                             }
                         }
-                        Spacer(Modifier.height(12.dp))
+                        Spacer(Modifier.height(16.dp))
                         EditableTitle(value = job.name, onChange = onRename)
                         Spacer(Modifier.height(4.dp))
                         Text(job.uploader, color = MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.Medium)
@@ -175,7 +175,7 @@ fun FinalizeScreen(
                         }
                     }
 
-                    Spacer(Modifier.height(20.dp))
+                    Spacer(Modifier.height(16.dp))
 
                     fun saveRingtone() {
                         if (isSaving) return
@@ -231,7 +231,6 @@ fun FinalizeScreen(
             }
         }
     }
-}
 
 private fun formatTime(seconds: Float): String {
     val total = seconds.toInt().coerceAtLeast(0)
@@ -445,7 +444,7 @@ private fun SwipeToConfirmButton(
                 style = TextStyle(
                     brush = textBrush,
                     fontWeight = FontWeight.Bold,
-                    fontSize = 13.sp,
+                    fontSize = 11.sp,
                     letterSpacing = 1.sp,
                 ),
                 onTextLayout = { textWidthPx = it.size.width.toFloat() },

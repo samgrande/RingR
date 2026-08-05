@@ -20,8 +20,10 @@ import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.VolumeOff
 import androidx.compose.material.icons.automirrored.filled.VolumeUp
@@ -156,9 +158,12 @@ fun TrimScreen(
         }
     }
 
-    Box(
-        modifier = Modifier.fillMaxSize(),
-        contentAlignment = Alignment.Center,
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState()),
+        verticalArrangement = Arrangement.Center,
+        horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Card(
             modifier = Modifier.wrapContentHeight(),
@@ -202,7 +207,7 @@ fun TrimScreen(
 
                 Box(
                     modifier = Modifier
-                        .fillMaxWidth(0.7f)
+                        .fillMaxWidth()
                         .height(44.dp)
                         .clip(RoundedCornerShape(22.dp))
                         .background(MaterialTheme.colorScheme.surfaceVariant)
@@ -291,7 +296,7 @@ fun TrimScreen(
                     )
                 }
 
-                Spacer(Modifier.height(12.dp))
+                Spacer(Modifier.height(16.dp))
                 MarqueeText(text = job.name, modifier = Modifier.fillMaxWidth())
                 Spacer(Modifier.height(4.dp))
                 Text(job.uploader, color = MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.Medium, fontSize = 13.sp)
@@ -318,7 +323,7 @@ fun TrimScreen(
                     }
                 }
 
-                Spacer(Modifier.height(20.dp))
+                Spacer(Modifier.height(16.dp))
 
                 var canvasWidth by remember { mutableFloatStateOf(1f) }
 
@@ -378,7 +383,7 @@ fun TrimScreen(
 @Composable
 private fun InfoChip(label: String, value: String) {
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        Text(label, color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 9.sp, fontWeight = FontWeight.Medium, letterSpacing = 1.sp)
+        Text(label, color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 10.sp, fontWeight = FontWeight.Medium, letterSpacing = 1.sp)
         Spacer(Modifier.height(4.dp))
         Text(value, color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold, fontSize = 16.sp)
     }
@@ -396,14 +401,14 @@ private fun MuteOverlay(visible: Boolean, muted: Boolean) {
                 .size(64.dp)
                 .shadow(8.dp, CircleShape)
                 .clip(CircleShape)
-                .background(Color(0xFFFDE0D9)),
+                .background(MaterialTheme.colorScheme.surfaceContainerHighest),
             contentAlignment = Alignment.Center,
         ) {
             Icon(
                 imageVector = if (muted) Icons.AutoMirrored.Filled.VolumeOff else Icons.AutoMirrored.Filled.VolumeUp,
                 contentDescription = null,
                 modifier = Modifier.size(32.dp),
-                tint = MaterialTheme.colorScheme.secondary,
+                tint = MaterialTheme.colorScheme.primary,
             )
         }
     }
@@ -427,8 +432,6 @@ private fun MinimalWaveform(
     val cropDurationState = rememberUpdatedState(cropDuration)
 
     val primaryColor = MaterialTheme.colorScheme.primary
-    val primaryContainerColor = MaterialTheme.colorScheme.primaryContainer
-    val onPrimaryContainerColor = MaterialTheme.colorScheme.onPrimaryContainer
     val onSurfaceDim = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.15f)
 
     Box(
@@ -480,7 +483,7 @@ private fun MinimalWaveform(
 
                 val barColor = when {
                     isPlayed -> primaryColor
-                    isInCrop -> primaryContainerColor.copy(alpha = 0.5f)
+                    isInCrop -> primaryColor.copy(alpha = 0.6f)
                     else -> onSurfaceDim
                 }
 
@@ -500,21 +503,22 @@ private fun MinimalWaveform(
             val cropW = (cropRightPx - cropLeftPx).coerceAtLeast(0f)
 
             if (cropW > 0f) {
-                val fillColor = primaryColor.copy(alpha = 0.08f)
+                val fillColor = primaryColor.copy(alpha = 0.2f)
                 val strokeColor = primaryColor.copy(alpha = 0.5f)
                 val cornerR = 16.dp.toPx()
                 val borderW = 2.dp.toPx()
+                val inset = 1.dp.toPx()
 
                 drawRoundRect(
                     color = fillColor,
-                    topLeft = Offset(cropLeftPx, 0f),
-                    size = Size(cropW, h),
+                    topLeft = Offset(cropLeftPx + inset, inset),
+                    size = Size(cropW - inset * 2f, h - inset * 2f),
                     cornerRadius = CornerRadius(cornerR, cornerR),
                 )
                 drawRoundRect(
                     color = strokeColor,
-                    topLeft = Offset(cropLeftPx, 0f),
-                    size = Size(cropW, h),
+                    topLeft = Offset(cropLeftPx + inset, inset),
+                    size = Size(cropW - inset * 2f, h - inset * 2f),
                     cornerRadius = CornerRadius(cornerR, cornerR),
                     style = Stroke(width = borderW),
                 )
