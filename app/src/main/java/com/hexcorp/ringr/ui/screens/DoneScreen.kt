@@ -1,8 +1,6 @@
 package com.hexcorp.ringr.ui.screens
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
@@ -48,23 +46,13 @@ fun DoneScreen(
             modifier = Modifier.align(Alignment.Center),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            Box(
-                modifier = Modifier
-                    .size(240.dp)
-                    .background(
-                        MaterialTheme.colorScheme.surfaceContainerHigh,
-                        shape = CircleShape,
-                    ),
-                contentAlignment = Alignment.Center,
-            ) {
-                LottieAnimation(
-                    composition = composition,
-                    progress = { progress },
-                    modifier = Modifier.size(250.dp),
-                    dynamicProperties = dynamicProperties,
-                    contentScale = ContentScale.Fit,
-                )
-            }
+            LottieAnimation(
+                composition = composition,
+                progress = { progress },
+                modifier = Modifier.size(250.dp),
+                dynamicProperties = dynamicProperties,
+                contentScale = ContentScale.Fit,
+            )
             Spacer(Modifier.height(40.dp))
             Text(
                 text = "Ringtone set!",
