@@ -20,11 +20,13 @@ android {
     }
 
     signingConfigs {
+    if (System.getenv("KEYSTORE_PATH") != null) {
         create("release") {
-            storeFile = file("../keystore/ringr-release.jks")
+            storeFile = file(System.getenv("KEYSTORE_PATH")!!)
             storePassword = System.getenv("STORE_PASSWORD") ?: ""
             keyAlias = System.getenv("KEY_ALIAS") ?: ""
             keyPassword = System.getenv("KEY_PASSWORD") ?: ""
+            }
         }
     }
 
@@ -36,7 +38,7 @@ android {
 
     buildTypes {
         release {
-            signingConfig = signingConfigs.getByName("release")
+            signingConfig = signingConfigs.findByName("release")
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(
