@@ -32,6 +32,12 @@ RingR lets you convert YouTube videos into ringtones directly on your device —
 - **Preset durations** — Quick-select 30s, 60s, or 90s clips, or trim manually.
 - **Dark & light themes** — Adapts to your system appearance automatically.
 
+## Screenshots
+
+| Paste a link | Trim your clip | Set as ringtone | Ringtone set |
+|:---:|:---:|:---:|:---:|
+| <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/1.png" alt="Paste a link" width="200"/> | <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/2.png" alt="Trim your clip" width="200"/> | <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/3.png" alt="Set as ringtone" width="200"/> | <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/4.png" alt="Ringtone set" width="200"/> |
+
 ## License
 
 GPL-3.0-or-later
