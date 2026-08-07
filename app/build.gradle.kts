@@ -7,16 +7,37 @@ android {
     namespace = "com.hexcorp.ringr"
     compileSdk = 35
 
+    fun gitVersionCode(): Int {
+    return try {
+        val out = providers.exec {
+            commandLine("git", "rev-list", "--count", "HEAD")
+        }.standardOutput.asText.get().trim()
+        out.toInt()
+    } catch (e: Exception) {
+        1
+    }
+}
+
+fun gitVersionName(): String {
+    return try {
+        val out = providers.exec {
+            commandLine("git", "describe", "--tags", "--always")
+        }.standardOutput.asText.get().trim()
+        out.removePrefix("v")
+    } catch (e: Exception) {
+        "1.0"
+    }
+}
+
+android {
     defaultConfig {
         applicationId = "com.hexcorp.ringr"
-        minSdk = 24
-        targetSdk = 35
-        versionCode = System.getenv("TAG_VERSION_CODE")?.toIntOrNull() ?: 1
-        versionName = System.getenv("TAG_VERSION") ?: "1.0"
-
-        ndk {
-            abiFilters += listOf("arm64-v8a")
-        }
+        minSdk = ...
+        targetSdk = ...
+        versionCode = gitVersionCode()
+        versionName = gitVersionName()
+    }
+}
     }
 
     signingConfigs {
