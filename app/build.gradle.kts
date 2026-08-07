@@ -3,28 +3,6 @@ plugins {
     alias(libs.plugins.kotlin.compose)
 }
 
-fun gitVersionCode(): Int {
-    return try {
-        val out = providers.exec {
-            commandLine("git", "rev-list", "--count", "HEAD")
-        }.standardOutput.asText.get().trim()
-        out.toInt()
-    } catch (e: Exception) {
-        1
-    }
-}
-
-fun gitVersionName(): String {
-    return try {
-        val out = providers.exec {
-            commandLine("git", "describe", "--tags", "--always")
-        }.standardOutput.asText.get().trim()
-        out.removePrefix("v")
-    } catch (e: Exception) {
-        "1.0"
-    }
-}
-
 android {
     namespace = "com.hexcorp.ringr"
     compileSdk = 35
@@ -33,8 +11,8 @@ android {
         applicationId = "com.hexcorp.ringr"
         minSdk = 26
         targetSdk = 35
-        versionCode = gitVersionCode()
-        versionName = gitVersionName()
+        versionCode = 41
+        versionName = "1.7"
     }
 
     signingConfigs {
