@@ -6,7 +6,7 @@
 
 <p align="center">
   <img src="https://img.shields.io/badge/platform-Android-green.svg" alt="Platform">
-  <img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="License">
+  <img src="https://img.shields.io/badge/license-GPLv3-blue.svg" alt="License">
   <img src="https://img.shields.io/badge/release-v1.0.0-orange.svg" alt="Release">
   <img src="https://img.shields.io/badge/API-26%2B-brightgreen.svg" alt="API">
 </p>
@@ -27,11 +27,11 @@ RingR lets you convert YouTube videos into ringtones directly on your device —
 
 ## Features
 
-- **Powered by yt-dlp** — Audio is extracted directly from YouTube using the yt-dlp engine, all on your device.
+- **Powered by NewPipe** — Audio is extracted directly from YouTube using the NewPipe Extractor library, all on your device.
 - **Waveform preview** — Visually see the audio waveform to make precise cuts.
 - **Preset durations** — Quick-select 30s, 60s, or 90s clips, or trim manually.
 - **Dark & light themes** — Adapts to your system appearance automatically.
 
 ## License
 
-MIT
+GPL-3.0-or-later

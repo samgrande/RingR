@@ -7,9 +7,9 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.hexcorp.ringr.service.DownloadEventBus
 import com.hexcorp.ringr.service.DownloadService
-import com.hexcorp.ringr.ytdlp.PcmData
-import com.hexcorp.ringr.ytdlp.RingRExtractionException
-import com.hexcorp.ringr.ytdlp.YtDlpManager
+import com.hexcorp.ringr.extractor.ExtractorManager
+import com.hexcorp.ringr.extractor.PcmData
+import com.hexcorp.ringr.extractor.RingRExtractionException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -45,7 +45,7 @@ data class RingRUiState(
 
 class RingRViewModel(application: Application) : AndroidViewModel(application) {
 
-    private val manager = YtDlpManager(application)
+    private val manager = ExtractorManager(application)
 
     private val _uiState = MutableStateFlow(RingRUiState())
     val uiState: StateFlow<RingRUiState> = _uiState

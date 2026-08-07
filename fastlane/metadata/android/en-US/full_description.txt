@@ -1,12 +1,12 @@
 RingR turns any youtube video link into a custom ringtone, entirely on your device.
 
-Paste a link, and RingR pulls the audio down locally from youtube using yt-dlp . Everything stays on your phone.
+Paste a link, and RingR pulls the audio down locally from youtube using the NewPipe extractor. Everything stays on your phone.
 
 Once the audio is ready, use the built-in audio trimmer to pick out exactly the clip you want and save it straight to your device's ringtone collection.
 
 Features:
 
-* Local audio extraction using yt-dlp, nothing leaves your device
+* Local audio extraction using the NewPipe extractor, nothing leaves your device
 * Quick preset durations (30s, 60s, 90s) or full manual control
 * Dark and light theme support
 * Set your custom clip as a ringtone instantly, no extra steps

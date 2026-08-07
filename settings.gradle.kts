@@ -11,7 +11,7 @@ dependencyResolutionManagement {
     repositories {
         google()
         mavenCentral()
-        maven { url = uri("https://jitpack.io") } // required for youtubedl-android
+        maven { url = uri("https://jitpack.io") } // required for NewPipeExtractor
     }
 }
 

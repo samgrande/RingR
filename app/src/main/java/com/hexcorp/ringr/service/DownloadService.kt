@@ -9,10 +9,10 @@ import androidx.core.app.NotificationCompat
 import com.hexcorp.ringr.MainActivity
 import com.hexcorp.ringr.R
 import com.hexcorp.ringr.RingRApp
-import com.hexcorp.ringr.ytdlp.RingRExtractionException
-import com.hexcorp.ringr.ytdlp.PcmData
-import com.hexcorp.ringr.ytdlp.VideoMeta
-import com.hexcorp.ringr.ytdlp.YtDlpManager
+import com.hexcorp.ringr.extractor.ExtractorManager
+import com.hexcorp.ringr.extractor.PcmData
+import com.hexcorp.ringr.extractor.RingRExtractionException
+import com.hexcorp.ringr.extractor.VideoMeta
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -52,13 +52,13 @@ object DownloadEventBus {
 
 class DownloadService : Service() {
 
-    private lateinit var manager: YtDlpManager
+    private lateinit var manager: ExtractorManager
     private var downloadJob: Job? = null
     private val serviceScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
 
     override fun onCreate() {
         super.onCreate()
-        manager = YtDlpManager(this)
+        manager = ExtractorManager(this)
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {

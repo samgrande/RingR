@@ -49,13 +49,14 @@ android {
     }
 
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_17
-        targetCompatibility = JavaVersion.VERSION_17
+        isCoreLibraryDesugaringEnabled = true
+        sourceCompatibility = JavaVersion.VERSION_21
+        targetCompatibility = JavaVersion.VERSION_21
     }
 
     kotlin {
         compilerOptions {
-            jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17)
+            jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_21)
         }
     }
 
@@ -94,11 +95,10 @@ dependencies {
     // Lottie for loading animation
     implementation(libs.lottie.compose)
 
-    // yt-dlp bundled for Android (Maven Central — io.github.junkfood02.youtubedl-android 0.18.1)
-    implementation(libs.youtubedl.android) {
-        exclude(group = "io.github.junkfood02.youtubedl-android", module = "youtubedl-android-ffmpeg")
-    }
-    implementation(libs.youtubedl.android.common)
+    // NewPipeExtractor for YouTube metadata + stream extraction (F-Droid friendly)
+    implementation("com.github.teamnewpipe:NewPipeExtractor:v0.26.4")
+    implementation("com.squareup.okhttp3:okhttp:4.12.0")
+    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs_nio:2.1.5")
 
     implementation(libs.kotlinx.coroutines.android)
 
