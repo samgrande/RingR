@@ -11,8 +11,8 @@ android {
         applicationId = "com.hexcorp.ringr"
         minSdk = 26
         targetSdk = 35
-        versionCode = 42
-        versionName = "1.9"
+        versionCode = 43
+        versionName = "2.0"
     }
 
     signingConfigs {
@@ -68,6 +68,11 @@ android {
         resources {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
         }
+    }
+
+    dependenciesInfo {
+        includeInApk = false
+        includeInBundle = false
     }
 }
 
