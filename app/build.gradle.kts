@@ -3,11 +3,7 @@ plugins {
     alias(libs.plugins.kotlin.compose)
 }
 
-android {
-    namespace = "com.hexcorp.ringr"
-    compileSdk = 35
-
-    fun gitVersionCode(): Int {
+fun gitVersionCode(): Int {
     return try {
         val out = providers.exec {
             commandLine("git", "rev-list", "--count", "HEAD")
@@ -30,23 +26,24 @@ fun gitVersionName(): String {
 }
 
 android {
+    namespace = "com.hexcorp.ringr"
+    compileSdk = 35
+
     defaultConfig {
         applicationId = "com.hexcorp.ringr"
-        minSdk = ...
-        targetSdk = ...
+        minSdk = 26
+        targetSdk = 35
         versionCode = gitVersionCode()
         versionName = gitVersionName()
     }
-}
-    }
 
     signingConfigs {
-    if (System.getenv("KEYSTORE_PATH") != null) {
-        create("release") {
-            storeFile = file(System.getenv("KEYSTORE_PATH")!!)
-            storePassword = System.getenv("STORE_PASSWORD") ?: ""
-            keyAlias = System.getenv("KEY_ALIAS") ?: ""
-            keyPassword = System.getenv("KEY_PASSWORD") ?: ""
+        if (System.getenv("KEYSTORE_PATH") != null) {
+            create("release") {
+                storeFile = file(System.getenv("KEYSTORE_PATH")!!)
+                storePassword = System.getenv("STORE_PASSWORD") ?: ""
+                keyAlias = System.getenv("KEY_ALIAS") ?: ""
+                keyPassword = System.getenv("KEY_PASSWORD") ?: ""
             }
         }
     }
@@ -110,13 +107,9 @@ dependencies {
     implementation(libs.androidx.material3)
     implementation(libs.androidx.material.icons.extended)
 
-    // Image loading for thumbnails
     implementation(libs.coil.compose)
-
-    // Lottie for loading animation
     implementation(libs.lottie.compose)
 
-    // NewPipeExtractor for YouTube metadata + stream extraction (F-Droid friendly)
     implementation("com.github.teamnewpipe:NewPipeExtractor:v0.26.4")
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs_nio:2.1.5")
