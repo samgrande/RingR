@@ -16,9 +16,9 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.core.content.ContextCompat
 import androidx.compose.animation.AnimatedContent
-import androidx.compose.animation.Crossfade
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
@@ -276,9 +276,15 @@ fun RingRApp(viewModel: RingRViewModel) {
                                     )
                                 }
                                 Spacer(Modifier.height(40.dp))
-                                Crossfade(targetState = messageIndex, label = "loadingMessage") {
+                                AnimatedContent(
+                                    targetState = messageIndex,
+                                    transitionSpec = {
+                                        fadeIn(tween(250, delayMillis = 150)) togetherWith fadeOut(tween(150))
+                                    },
+                                    label = "loadingMessage",
+                                ) { index ->
                                     Text(
-                                        text = messages[it],
+                                        text = messages[index],
                                         style = MaterialTheme.typography.bodyMedium,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     )
