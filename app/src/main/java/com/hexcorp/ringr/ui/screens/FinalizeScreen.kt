@@ -39,6 +39,9 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalLifecycleOwner
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.IntOffset
@@ -60,6 +63,36 @@ fun FinalizeScreen(
     val context = LocalContext.current
     var isSaving by remember { mutableStateOf(false) }
     var saved by remember { mutableStateOf(false) }
+    var pendingDefaultSet by remember { mutableStateOf(false) }
+    var swipeReset by remember { mutableIntStateOf(0) }
+
+    val lifecycleOwner = LocalLifecycleOwner.current
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME && pendingDefaultSet) {
+                val file = job.ringtoneFile
+                if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M ||
+                    Settings.System.canWrite(context)
+                ) {
+                    if (file != null && file.exists()) {
+                        setAsDefaultRingtone(context, file, job.name)
+                        pendingDefaultSet = false
+                        saved = true
+                        onRingtoneSet()
+                    }
+                } else {
+                    Toast.makeText(
+                        context,
+                        "WRITE_SETTINGS not granted - ringtone saved to your collection.",
+                        Toast.LENGTH_LONG,
+                    ).show()
+                    pendingDefaultSet = false
+                }
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
 
     Column(
         modifier = Modifier
@@ -194,12 +227,12 @@ fun FinalizeScreen(
                         }
                         val ok = saveAsSystemRingtone(context, file, job.name)
                         if (ok) {
-                            saved = true
-                            onRingtoneSet()
                             if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M ||
                                 Settings.System.canWrite(context)
                             ) {
                                 setAsDefaultRingtone(context, file, job.name)
+                                saved = true
+                                onRingtoneSet()
                             } else {
                                 Toast.makeText(
                                     context,
@@ -210,6 +243,9 @@ fun FinalizeScreen(
                                     data = Uri.parse("package:${context.packageName}")
                                 }
                                 context.startActivity(intent)
+                                pendingDefaultSet = true
+                                saved = false
+                                swipeReset++
                             }
                         } else {
                             Toast.makeText(
@@ -225,6 +261,7 @@ fun FinalizeScreen(
                         success = saved,
                         enabled = !isSaving,
                         onSwipeComplete = ::saveRingtone,
+                        resetKey = swipeReset,
                         modifier = Modifier.fillMaxWidth(),
                     )
                 }
@@ -360,6 +397,7 @@ private fun SwipeToConfirmButton(
     success: Boolean,
     enabled: Boolean,
     onSwipeComplete: () -> Unit,
+    resetKey: Int = 0,
     modifier: Modifier = Modifier,
 ) {
     val density = LocalDensity.current
@@ -395,6 +433,13 @@ private fun SwipeToConfirmButton(
         if (success) {
             showTuneIcon.value = false
             offsetX.animateTo(maxOffset, spring(stiffness = Spring.StiffnessMediumLow))
+        }
+    }
+
+    LaunchedEffect(resetKey) {
+        if (resetKey > 0) {
+            showTuneIcon.value = true
+            offsetX.snapTo(0f)
         }
     }
 

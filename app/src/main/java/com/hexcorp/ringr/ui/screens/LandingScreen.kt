@@ -17,10 +17,11 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.painterResource
@@ -28,9 +29,12 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.airbnb.lottie.LottieProperty
 import com.airbnb.lottie.compose.LottieAnimation
 import com.airbnb.lottie.compose.LottieCompositionSpec
 import com.airbnb.lottie.compose.rememberLottieComposition
+import com.airbnb.lottie.compose.rememberLottieDynamicProperties
+import com.airbnb.lottie.compose.rememberLottieDynamicProperty
 import com.hexcorp.ringr.ui.theme.*
 
 @Composable
@@ -62,15 +66,28 @@ fun LandingScreen(
                 .imePadding(),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            val composition by rememberLottieComposition(LottieCompositionSpec.RawRes(com.hexcorp.ringr.R.raw.youman))
+            val composition by rememberLottieComposition(LottieCompositionSpec.RawRes(com.hexcorp.ringr.R.raw.hero))
+            val circleColor = if (isSystemInDarkTheme()) {
+                MaterialTheme.colorScheme.surfaceVariant.toArgb()
+            } else {
+                Color.White.toArgb()
+            }
+            val dynamicProperties = rememberLottieDynamicProperties(
+                rememberLottieDynamicProperty(
+                    property = LottieProperty.COLOR,
+                    keyPath = arrayOf("icon_circle", "**"),
+                    value = circleColor,
+                ),
+            )
             LottieAnimation(
                 composition = composition,
                 isPlaying = composition != null,
                 iterations = Int.MAX_VALUE,
-                speed = 3f,
+                speed = 1.5f,
                 modifier = Modifier
                     .size(300.dp)
                     .offset(y = lottieOffset),
+                dynamicProperties = dynamicProperties,
             )
             Spacer(Modifier.height(16.dp))
             Image(
